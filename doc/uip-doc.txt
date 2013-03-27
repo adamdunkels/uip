@@ -1,12 +1,8 @@
 
-/**
-\defgroup uip The uIP TCP/IP stack
-@{
-*/
 
 /**
 \mainpage The uIP TCP/IP stack
-\author Adam Dunkels <adam@dunkels.com>
+\author Adam Dunkels, http://www.sics.se/~adam/
 
 The uIP TCP/IP stack is intended to make it possible to communicate
 using the TCP/IP protocol suite even on small 8-bit
@@ -16,7 +12,19 @@ with peers running a similarly light-weight stack. The code size is on
 the order of a few kilobytes and RAM usage can be configured to be as
 low as a few hundred bytes.
 
-\section uIPIntroduction uIP introduction
+uIP can be found at the uIP web page: http://www.sics.se/~adam/uip/
+
+\sa \ref apps "Application programs"
+\sa \ref uipopt "Compile-time configuration options"
+\sa \ref uipconffunc "Run-time configuration functions"
+\sa \ref uipinit "Initialization functions"
+\sa \ref uipdevfunc "Device driver interface" and
+    \ref uipdrivervars "variables used by device drivers"
+\sa \ref uipappfunc "uIP functions called from application programs"
+(see below) and the \ref psock "protosockets API" and their underlying
+\ref pt "protothreads" 
+
+\section uIPIntroduction Introduction
 
 With the success of the Internet, the TCP/IP protocol suite has become
 a global standard for communication. TCP/IP is the underlying protocol
@@ -37,9 +45,8 @@ code.
 
 The uIP implementation is designed to have only the absolute minimal
 set of features needed for a full TCP/IP stack. It can only handle a
-single network interface and contains only a rudimentary UDP
-implementation, but focuses on the IP, ICMP and TCP protocols. uIP is
-written in the C programming language.
+single network interface and contains the IP, ICMP, UDP and TCP
+protocols. uIP is written in the C programming language.
 
 Many other TCP/IP implementations for small systems assume that the
 embedded device always will communicate with a full-scale TCP/IP
@@ -54,7 +61,7 @@ network citizens. The uIP TCP/IP implementation that is not tailored
 for any specific application.
 
 
-\section tcpip TCP/IP communication
+\section tcpip TCP/IP Communication
 
 The full TCP/IP suite consists of numerous protocols, ranging from low
 level protocols such as ARP which translates IP addresses to MAC
@@ -104,7 +111,69 @@ dynamically configurable type-of-service bits for TCP
 connections. Since there are only very few applications that make use
 of those features they can be removed without loss of generality.
 
-\section memory Memory management
+\section mainloop Main Control Loop
+
+The uIP stack can be run either as a task in a multitasking system, or
+as the main program in a singletasking system. In both cases, the main
+control loop does two things repeatedly:
+
+ - Check if a packet has arrived from the network.
+ - Check if a periodic timeout has occurred.
+
+If a packet has arrived, the input handler function, uip_input(),
+should be invoked by the main control loop. The input handler function
+will never block, but will return at once. When it returns, the stack
+or the application for which the incoming packet was intended may have
+produced one or more reply packets which should be sent out. If so,
+the network device driver should be called to send out these packets.
+
+Periodic timeouts are used to drive TCP mechanisms that depend on
+timers, such as delayed acknowledgments, retransmissions and
+round-trip time estimations. When the main control loop infers that
+the periodic timer should fire, it should invoke the timer handler
+function uip_periodic(). Because the TCP/IP stack may perform
+retransmissions when dealing with a timer event, the network device
+driver should called to send out the packets that may have been produced.
+
+\section arch Architecture Specific Functions
+
+uIP requires a few functions to be implemented specifically for the
+architecture on which uIP is intended to run. These functions should
+be hand-tuned for the particular architecture, but generic C
+implementations are given as part of the uIP distribution.
+
+\subsection checksums Checksum Calculation
+
+The TCP and IP protocols implement a checksum that covers the data and
+header portions of the TCP and IP packets. Since the calculation of
+this checksum is made over all bytes in every packet being sent and
+received it is important that the function that calculates the
+checksum is efficient. Most often, this means that the checksum
+calculation must be fine-tuned for the particular architecture on
+which the uIP stack runs.
+
+While uIP includes a generic checksum function, it also leaves it open
+for an architecture specific implementation of the two functions
+uip_ipchksum() and uip_tcpchksum(). The checksum calculations in those
+functions can be written in highly optimized assembler rather than
+generic C code.
+
+\subsection longarith 32-bit Arithmetic
+
+The TCP protocol uses 32-bit sequence numbers, and a TCP
+implementation will have to do a number of 32-bit additions as part of
+the normal protocol processing. Since 32-bit arithmetic is not
+natively available on many of the platforms for which uIP is intended,
+uIP leaves the 32-bit additions to be implemented by the architecture
+specific module and does not make use of any 32-bit arithmetic in the
+main code base.
+
+While uIP implements a generic 32-bit addition, there is support for
+having an architecture specific implementation of the uip_add32()
+function.
+
+
+\section memory Memory Management
 
 In the architectures for which uIP is intended, RAM is the most
 scarce resource. With only a few kilobytes of RAM available for the
@@ -160,7 +229,8 @@ with as little as 200 bytes of RAM, but such a configuration will
 provide extremely low throughput and will only allow a small number of
 simultaneous connections.
 
-\section api Application program interface (API)
+\section api Application Program Interface (API)
+
 
 The Application Program Interface (API) defines the way the
 application program interacts with the TCP/IP stack. The most commonly
@@ -173,7 +243,18 @@ space for the tasks might be too high in the intended uIP target
 architectures, the BSD socket interface is not suitable for our
 purposes.
 
-Instead, uIP uses an event driven interface where the application is
+uIP provides two APIs to programmers: protosockets, a BSD socket-like
+API without the overhead of full multi-threading, and a "raw"
+event-based API that is nore low-level than protosockets but uses less
+memory.
+
+\sa \ref psock
+\sa \ref pt
+
+
+\subsection rawapi The uIP raw API
+
+The "raw" uIP API uses an event driven interface where the application is
 invoked in response to certain events. An application running on top
 of uIP is implemented as a C function that is called by uIP in
 response to certain events. uIP calls the application when data is
@@ -216,7 +297,7 @@ to know when the retransmission should be made. Thus the complexity of
 the application does not necessarily increase because it takes an
 active part in doing retransmissions.
 
-\subsection appevents Application events
+\subsubsection appevents Application Events
 
 The application must be implemented as a C function, UIP_APPCALL(),
 that uIP calls whenever an event occurs. Each event has a corresponding
@@ -226,7 +307,7 @@ to either zero or non-zero. Note that certain events can happen in
 conjunction with each other (i.e., new data can arrive at the same
 time as data is acknowledged).
 
-\subsection connstate The connection pointer
+\subsubsection connstate The Connection Pointer
 
 When the application is called by uIP, the global variable uip_conn is
 set to point to the uip_conn structure for the connection that
@@ -240,7 +321,7 @@ application might decide to act as an HTTP server if the value of
 uip_conn->lport is equal to 80 and act as a TELNET server if the value
 is 23. 
 
-\subsection recvdata Receiving data
+\subsubsection recvdata Receiving Data
 
 If the uIP test function uip_newdata() is non-zero, the remote host of
 the connection has sent new data. The uip_appdata pointer point to the
@@ -251,7 +332,7 @@ application will therefor have to either act directly on the incoming
 data, or by itself copy the incoming data into a buffer for later
 processing.
 
-\subsection senddata Sending data
+\subsubsection senddata Sending Data
 
 When sending data, uIP adjusts the length of the data sent by the
 application according to the available buffer space and the current
@@ -272,7 +353,7 @@ connection and it is not possible to call uip_send() more than once
 per application invocation; only the data from the last call will be
 sent.
 
-\subsection rexmitdata Retransmitting data
+\subsubsection rexmitdata Retransmitting Data
 
 Retransmissions are driven by the periodic TCP timer. Every time the
 periodic timer is invoked, the retransmission timer for each
@@ -297,7 +378,7 @@ should be made. Thus the complexity of the application does not
 necessarily increase because it takes an active part in doing
 retransmissions.
 
-\subsection closing Closing connections
+\subsubsection closing Closing Connections
 
 The application closes the current connection by calling the
 uip_close() during an application call. This will cause the connection
@@ -309,7 +390,7 @@ If the connection has been closed by the remote end, the test function
 uip_closed() is true. The application may then do any necessary
 cleanups.
 
-\subsection errors Reporting errors
+\subsubsection errors Reporting Errors
 
 There are two fatal errors that can happen to a connection, either
 that the connection was aborted by the remote host, or that the
@@ -318,7 +399,7 @@ aborted. uIP reports this by calling the application function. The
 application can use the two test functions uip_aborted() and
 uip_timedout() to test for those error conditions.
 
-\subsection polling Polling
+\subsubsection polling Polling
 
 When a connection is idle, uIP polls the application every time the
 periodic timer fires. The application uses the test function
@@ -332,7 +413,7 @@ has been produced. The application can only send data when invoked by
 uIP, and therefore the poll event is the only way to send data on an
 otherwise idle connection.
 
-\subsection listen Listening ports
+\subsubsection listen Listening Ports
 
 uIP maintains a list of listening TCP ports. A new port is opened for
 listening with the uip_listen() function. When a connection request
@@ -343,7 +424,7 @@ the application was invoked because a new connection was created.
 The application can check the lport field in the uip_conn structure to
 check to which port the new connection was connected.
 
-\subsection connect Opening connections
+\subsubsection connect Opening Connections
 
 New connections can be opened from within
 uIP by the function uip_connect(). This function
@@ -384,69 +465,12 @@ void connect_example2(void) {
 }
 \endcode
 
-\section drivers uIP device drivers
-
-From the network device driver's standpoint, uIP consists of two C
-functions: uip_input() and uip_periodic(). The uip_input() function
-should be called by the device driver when an IP packet has been
-received and put into the uip_buf packet buffer. The uip_input()
-function will process the packet, and when it returns an outbound
-packet may have been placed in the same uip_buf packet buffer
-(indicated by the uip_len variable being non-zero). The device driver
-should then send out this packet onto the network.
-
-The uip_periodic() function should be invoked periodically once per
-connection by the device driver, typically one per second. This
-function is used by uIP to drive protocol timers and retransmissions,
-and when it returns it may have placed an outbound packet in the
-uip_buf buffer.
-
-\section arch Architecture specific functions
-
-uIP requires a few functions to be implemented specifically for the
-architecture on which uIP is intended to run. These functions should
-be hand-tuned for the particular architecture, but generic C
-implementations are given as part of the uIP distribution.
-
-\subsection checksums Checksum calculation
-
-The TCP and IP protocols implement a checksum that covers the data and
-header portions of the TCP and IP packets. Since the calculation of
-this checksum is made over all bytes in every packet being sent and
-received it is important that the function that calculates the
-checksum is efficient. Most often, this means that the checksum
-calculation must be fine-tuned for the particular architecture on
-which the uIP stack runs.
-
-Because of this, uIP does not implement a generic checksum function,
-but leaves this to the architecture specific files which must
-implement the two functions uip_ipchksum() and uip_tcpchksum(). The
-checksum calculations in those functions can be written in highly
-optimized assembler rather than generic C code.
-
-An example C implementation of the checksum function is provided in
-the uIP distribution.
-
-\subsection longarith 32-bit arithmetic
-
-The TCP protocol uses 32-bit sequence numbers, and a TCP
-implementation will have to do a number of 32-bit additions as part of
-the normal protocol processing. Since 32-bit arithmetic is not
-natively available on many of the platforms for which uIP is intended,
-uIP leaves the 32-bit additions to be implemented by the architecture
-specific module and does not make use of any 32-bit arithmetic in the
-main code base.
-
-The architecture specific code must implement a function uip_add32()
-which does a 32-bit addition and stores the result in a global
-variable uip_acc32. 
-
 \section examples Examples
 
 This section presents a number of very simple uIP applications. The
 uIP code distribution contains several more complex applications.
 
-\subsection example1 A very simple application
+\subsection example1 A Very Simple Application
 
 This first example shows a very simple application. The application
 listens for incoming connections on port 1234. When a connection has
@@ -482,7 +506,7 @@ example actually shows a complete uIP application. It is not required
 for an application to deal with all types of events such as
 uip_connected() or uip_timedout(). 
 
-\subsection example2 A more advanced application
+\subsection example2 A More Advanced Application
 
 This second example is slightly more advanced than the previous one,
 and shows how the application state field in the uip_conn structure is
@@ -576,7 +600,7 @@ The configuration for the application:
 #define UIP_APPSTATE_SIZE sizeof(struct example2_state)
 \endcode
 
-\subsection example3 Differentiating between applications
+\subsection example3 Differentiating Between Applications
 
 If the system should run multiple applications, one technique to
 differentiate between them is to use the TCP port number of either the
@@ -601,7 +625,7 @@ void example3_app(void) {
 }
 \endcode
 
-\subsection example4 Utilizing TCP flow control
+\subsection example4 Utilizing TCP Flow Control
 
 This example shows a simple application that connects to a host, sends
 an HTTP request for a file and downloads it to a slow device such a
@@ -655,7 +679,7 @@ uip_restart() is called. The application polling event is used to
 check if the device's queue is no longer full and if so, the data flow
 is restarted with uip_restart().
 
-\subsection example5 A simple web server
+\subsection example5 A Simple Web Server
 
 This example shows a very simple file server application that listens
 to two ports and uses the port number to determine which file to
@@ -715,7 +739,7 @@ The application is driven by incoming acknowledgments. When data has
 been acknowledged, new data can be sent. If there is no more data to
 send, the connection is closed using uip_close().
 
-\subsection example6 Structured application program design
+\subsection example6 Structured Application Program Design
 
 When writing larger programs using uIP it is useful to be able to
 utilize the uIP API in a structured way. The following example
@@ -893,19 +917,264 @@ It is important to note that the senddata() function never should
 affect the application state; this should only be done in the acked()
 and newdata() functions.
 
+\section protoimpl Protocol Implementations
+
+The protocols in the TCP/IP protocol suite are designed in a layered
+fashion where each protocol performs a specific function and the
+interactions between the protocol layers are strictly defined. While
+the layered approach is a good way to design protocols, it is not
+always the best way to implement them. In uIP, the protocol
+implementations are tightly coupled in order to save code space.
+
+This section gives detailed information on the specific protocol
+implementations in uIP.
+
+\subsection ip IP --- Internet Protocol
+
+When incoming packets are processed by uIP, the IP layer is the first
+protocol that examines the packet. The IP layer does a few simple
+checks such as if the destination IP address of the incoming packet
+matches any of the local IP address and verifies the IP header
+checksum. Since there are no IP options that are strictly required and
+because they are very uncommon, any IP options in received packets are
+dropped.
+
+\subsubsection ipreass IP Fragment Reassembly
+
+IP fragment reassembly is implemented using a separate buffer that
+holds the packet to be reassembled. An incoming fragment is copied
+into the right place in the buffer and a bit map is used to keep track
+of which fragments have been received. Because the first byte of an IP
+fragment is aligned on an 8-byte boundary, the bit map requires a
+small amount of memory. When all fragments have been reassembled, the
+resulting IP packet is passed to the transport layer. If all fragments
+have not been received within a specified time frame, the packet is
+dropped.
+
+The current implementation only has a single buffer for holding
+packets to be reassembled, and therefore does not support simultaneous
+reassembly of more than one packet. Since fragmented packets are
+uncommon, this ought to be a reasonable decision. Extending the
+implementation to support multiple buffers would be straightforward,
+however.
+
+\subsubsection ipbroadcast Broadcasts and Multicasts
+
+IP has the ability to broadcast and multicast packets on the local
+network. Such packets are addressed to special broadcast and multicast
+addresses. Broadcast is used heavily in many UDP based protocols such
+as the Microsoft Windows file-sharing SMB protocol. Multicast is
+primarily used in protocols used for multimedia distribution such as
+RTP. TCP is a point-to-point protocol and does not use broadcast or
+multicast packets. uIP current supports broadcast packets as well as
+sending multicast packets. Joining multicast groups (IGMP) and
+receiving non-local multicast packets is not currently supported.
+
+\subsection icmp ICMP --- Internet Control Message Protocol
+
+The ICMP protocol is used for reporting soft error conditions and for
+querying host parameters. Its main use is, however, the echo mechanism
+which is used by the "ping" program.
+
+The ICMP implementation in uIP is very simple as itis restricted to
+only implement ICMP echo messages. Replies to echo messages are
+constructed by simply swapping the source and destination IP addresses
+of incoming echo requests and rewriting the ICMP header with the
+Echo-Reply message type. The ICMP checksum is adjusted using standard
+techniques (see RFC1624).
+
+Since only the ICMP echo message is implemented, there is no support
+for Path MTU discovery or ICMP redirect messages. Neither of these is
+strictly required for interoperability; they are performance
+enhancement mechanisms.
+
+\subsection tcp TCP --- Transmission Control Protocol
+
+The TCP implementation in uIP is driven by incoming packets and timer
+events. Incoming packets are parsed by TCP and if the packet contains
+data that is to be delivered to the application, the application is
+invoked by the means of the application function call. If the incoming
+packet acknowledges previously sent data, the connection state is
+updated and the application is informed, allowing it to send out new
+data.
+
+\subsubsection listeb Listening Connections
+
+TCP allows a connection to listen for incoming connection requests. In
+uIP, a listening connection is identified by the 16-bit port number
+and incoming connection requests are checked against the list of
+listening connections. This list of listening connections is dynamic
+and can be altered by the applications in the system.
+
+\subsubsection slidingwindow Sliding Window
+
+Most TCP implementations use a sliding window mechanism for sending
+data. Multiple data segments are sent in succession without waiting
+for an acknowledgment for each segment.
+
+The sliding window algorithm uses a lot of 32-bit operations and
+because 32-bit arithmetic is fairly expensive on most 8-bit CPUs, uIP
+does not implement it. Also, uIP does not buffer sent packets and a
+sliding window implementation that does not buffer sent packets will have
+to be supported by a complex application layer. Instead, uIP allows
+only a single TCP segment per connection to be unacknowledged at any
+given time.
+
+It is important to note that even though most TCP implementations use
+the sliding window algorithm, it is not required by the TCP
+specifications. Removing the sliding window mechanism does not affect
+interoperability in any way.
+
+\subsubsection rttest Round-Trip Time Estimation
+
+TCP continuously estimates the current Round-Trip Time (RTT) of every
+active connection in order to find a suitable value for the
+retransmission time-out.
+
+The RTT estimation in uIP is implemented using TCP's periodic
+timer. Each time the periodic timer fires, it increments a counter for
+each connection that has unacknowledged data in the network. When an
+acknowledgment is received, the current value of the counter is used
+as a sample of the RTT. The sample is used together with Van
+Jacobson's standard TCP RTT estimation function to calculate an
+estimate of the RTT. Karn's algorithm is used to ensure that
+retransmissions do not skew the estimates.
+
+\subsubsection rexmit Retransmissions
+
+Retransmissions are driven by the periodic TCP timer. Every time the
+periodic timer is invoked, the retransmission timer for each
+connection is decremented. If the timer reaches zero, a retransmission
+should be made.
+
+As uIP does not keep track of packet contents after they have
+been sent by the device driver, uIP requires that the
+application takes an active part in performing the
+retransmission. When uIP decides that a segment should be
+retransmitted, it calls the application with a flag set indicating
+that a retransmission is required. The application checks the
+retransmission flag and produces the same data that was previously
+sent. From the application's standpoint, performing a retransmission
+is not different from how the data originally was sent. Therefore the
+application can be written in such a way that the same code is used
+both for sending data and retransmitting data. Also, it is important
+to note that even though the actual retransmission operation is
+carried out by the application, it is the responsibility of the stack
+to know when the retransmission should be made. Thus the complexity of
+the application does not necessarily increase because it takes an
+active part in doing retransmissions.
+
+\subsubsection flowcontrol Flow Control
+
+The purpose of TCP's flow control mechanisms is to allow communication
+between hosts with wildly varying memory dimensions. In each TCP
+segment, the sender of the segment indicates its available buffer
+space. A TCP sender must not send more data than the buffer space
+indicated by the receiver.
+
+In uIP, the application cannot send more data than the receiving host
+can buffer. And application cannot send more data than the amount of
+bytes it is allowed to send by the receiving host. If the remote host
+cannot accept any data at all, the stack initiates the zero window
+probing mechanism.
+
+\subsubsection congestioncontrol Congestion Control
+
+The congestion control mechanisms limit the number of simultaneous TCP
+segments in the network. The algorithms used for congestion control
+are designed to be simple to implement and require only a few lines of
+code.
+
+Since uIP only handles one in-flight TCP segment per connection,
+the amount of simultaneous segments cannot be further limited, thus
+the congestion control mechanisms are not needed.
+
+\subsubsection urgdata Urgent Data
+
+TCP's urgent data mechanism provides an application-to-application
+notification mechanism, which can be used by an application to mark
+parts of the data stream as being more urgent than the normal
+stream. It is up to the receiving application to interpret the meaning
+of the urgent data.
+
+In many TCP implementations, including the BSD implementation, the
+urgent data feature increases the complexity of the implementation
+because it requires an asynchronous notification mechanism in an
+otherwise synchronous API. As uIP already use an asynchronous event
+based API, the implementation of the urgent data feature does not lead
+to increased complexity.
+
+\section performance Performance
+
+In TCP/IP implementations for high-end systems, processing time is
+dominated by the checksum calculation loop, the operation of copying
+packet data and context switching. Operating systems for high-end
+systems often have multiple protection domains for protecting kernel
+data from user processes and user processes from each other. Because
+the TCP/IP stack is run in the kernel, data has to be copied between
+the kernel space and the address space of the user processes and a
+context switch has to be performed once the data has been
+copied. Performance can be enhanced by combining the copy operation
+with the checksum calculation. Because high-end systems usually have
+numerous active connections, packet demultiplexing is also an
+expensive operation.
+
+A small embedded device does not have the necessary processing power
+to have multiple protection domains and the power to run a
+multitasking operating system. Therefore there is no need to copy
+data between the TCP/IP stack and the application program. With an
+event based API there is no context switch between the TCP/IP stack
+and the applications.
+
+In such limited systems, the TCP/IP processing overhead is dominated
+by the copying of packet data from the network device to host memory,
+and checksum calculation. Apart from the checksum calculation and
+copying, the TCP processing done for an incoming packet involves only
+updating a few counters and flags before handing the data over to the
+application. Thus an estimate of the CPU overhead of our TCP/IP
+implementations can be obtained by calculating the amount of CPU
+cycles needed for the checksum calculation and copying of a maximum
+sized packet.
+
+\subsection delack The Impact of Delayed Acknowledgments
+
+Most TCP receivers implement the delayed acknowledgment algorithm for
+reducing the number of pure acknowledgment packets sent. A TCP
+receiver using this algorithm will only send acknowledgments for every
+other received segment. If no segment is received within a specific
+time-frame, an acknowledgment is sent. The time-frame can be as high
+as 500 ms but typically is 200 ms.
+
+A TCP sender such as uIP that only handles a single outstanding TCP
+segment will interact poorly with the delayed acknowledgment
+algorithm. Because the receiver only receives a single segment at a
+time, it will wait as much as 500 ms before an acknowledgment is
+sent. This means that the maximum possible throughput is severely
+limited by the 500 ms idle time.
+
+Thus the maximum throughput equation when sending data from uIP will
+be $p = s / (t + t_d)$ where $s$ is the segment size and $t_d$ is the
+delayed acknowledgment timeout, which typically is between 200 and
+500 ms. With a segment size of 1000 bytes, a round-trip time of 40 ms
+and a delayed acknowledgment timeout of 200 ms, the maximum
+throughput will be 4166 bytes per second. With the delayed acknowledgment
+algorithm disabled at the receiver, the maximum throughput would be
+25000 bytes per second.
+
+It should be noted, however, that since small systems running uIP are
+not very likely to have large amounts of data to send, the delayed
+acknowledgmen t throughput degradation of uIP need not be very
+severe. Small amounts of data sent by such a system will not span more
+than a single TCP segment, and would therefore not be affected by the
+throughput degradation anyway.
+
+The maximum throughput when uIP acts as a receiver is not affected by
+the delayed acknowledgment throughput degradation.
+
+
+
 */
 
 
 /** @} */
 
-/**
-\defgroup exampleapps Example applications
-@{
-
-The uIP distribution contains a number of example applications that
-can be either used directory or studied when learning to develop
-applications for uIP.
-
-*/
-
-/** @} */

@@ -4,7 +4,7 @@
  */
 
 /**
- * \addtogroup uiparp 
+ * \addtogroup uiparp
  * @{
  */
  
@@ -17,19 +17,19 @@
 
 /*
  * Copyright (c) 2001-2003, Adam Dunkels.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
- * 1. Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in the 
- *    documentation and/or other materials provided with the distribution. 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
- *    written permission.  
+ *    written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -41,11 +41,11 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uip_arp.h,v 1.3.2.2 2003/10/06 15:10:22 adam Exp $
+ * $Id: uip_arp.h,v 1.5 2006/06/11 21:46:39 adam Exp $
  *
  */
 
@@ -55,17 +55,10 @@
 #include "uip.h"
 
 
-/**
- * Representation of a 48-bit Ethernet address.
- */
-struct uip_eth_addr {
-  u8_t addr[6];
-};
-
 extern struct uip_eth_addr uip_ethaddr;
 
 /**
- * The Ethernet header. 
+ * The Ethernet header.
  */
 struct uip_eth_hdr {
   struct uip_eth_addr dest;
@@ -75,7 +68,7 @@ struct uip_eth_hdr {
 
 #define UIP_ETHTYPE_ARP 0x0806
 #define UIP_ETHTYPE_IP  0x0800
-#define UIP_ETHTYPE_IP6 0x86dd 
+#define UIP_ETHTYPE_IP6 0x86dd
 
 
 /* The uip_arp_init() function must be called before any of the other
@@ -87,7 +80,8 @@ void uip_arp_init(void);
    inserts a new mapping if none exists. The function assumes that an
    IP packet with an Ethernet header is present in the uip_buf buffer
    and that the length of the packet is in the uip_len variable. */
-void uip_arp_ipin(void);
+/*void uip_arp_ipin(void);*/
+#define uip_arp_ipin()
 
 /* The uip_arp_arpin() should be called when an ARP packet is received
    by the Ethernet driver. This function also assumes that the
@@ -120,51 +114,6 @@ void uip_arp_timer(void);
  * @{
  */
 
-/**
- * Set the default router's IP address.
- *
- * \param addr A pointer to a 4-byte array containing the IP address
- * of the default router.
- *
- * \hideinitializer
- */
-#define uip_setdraddr(addr) do { uip_arp_draddr[0] = addr[0]; \
-                                 uip_arp_draddr[1] = addr[1]; } while(0)
-
-/**
- * Set the netmask.
- *
- * \param addr A pointer to a 4-byte array containing the IP address
- * of the netmask.
- *
- * \hideinitializer
- */
-#define uip_setnetmask(addr) do { uip_arp_netmask[0] = addr[0]; \
-                                  uip_arp_netmask[1] = addr[1]; } while(0)
-
-
-/**
- * Get the default router's IP address.
- *
- * \param addr A pointer to a 4-byte array that will be filled in with
- * the IP address of the default router.
- *
- * \hideinitializer
- */
-#define uip_getdraddr(addr) do { addr[0] = uip_arp_draddr[0]; \
-                                 addr[1] = uip_arp_draddr[1]; } while(0)
-
-/**
- * Get the netmask.
- *
- * \param addr A pointer to a 4-byte array that will be filled in with
- * the value of the netmask.
- *
- * \hideinitializer
- */
-#define uip_getnetmask(addr) do { addr[0] = uip_arp_netmask[0]; \
-                                  addr[1] = uip_arp_netmask[1]; } while(0)
-
 
 /**
  * Specifiy the Ethernet MAC address.
@@ -190,12 +139,6 @@ void uip_arp_timer(void);
                               uip_ethaddr.addr[5] = eaddr.addr[5];} while(0)
 
 /** @} */
+/** @} */
 
-/**
- * \internal Internal variables that are set using the macros
- * uip_setdraddr and uip_setnetmask.
- */
-extern u16_t uip_arp_draddr[2], uip_arp_netmask[2];
 #endif /* __UIP_ARP_H__ */
-
-

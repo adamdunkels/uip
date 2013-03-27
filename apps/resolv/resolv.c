@@ -1,10 +1,10 @@
 /**
- * \addtogroup uip
+ * \addtogroup apps
  * @{
  */
 
 /**
- * \defgroup uipdns uIP hostname resolver functions
+ * \defgroup resolv DNS resolver
  * @{
  *
  * The uIP DNS resolver functions are used to lookup a hostname and
@@ -22,25 +22,25 @@
  * \file
  * DNS host name to IP address resolver.
  * \author Adam Dunkels <adam@dunkels.com>
- * 
+ *
  * This file implements a DNS host name to IP address resolver.
  */
 
 /*
  * Copyright (c) 2002-2003, Adam Dunkels.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
- * 1. Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in the 
- *    documentation and/or other materials provided with the distribution. 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
- *    written permission.  
+ *    written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -52,15 +52,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: resolv.c,v 1.1.2.5 2003/10/06 22:56:44 adam Exp $
+ * $Id: resolv.c,v 1.5 2006/06/11 21:46:37 adam Exp $
  *
  */
 
 #include "resolv.h"
+#include "uip.h"
 
 #include <string.h>
 
@@ -100,7 +101,7 @@ struct dns_answer {
   u16_t class;
   u16_t ttl[2];
   u16_t len;
-  u16_t ipaddr[2];
+  uip_ipaddr_t ipaddr;
 };
 
 struct namemap {
@@ -115,7 +116,7 @@ struct namemap {
   u8_t seqno;
   u8_t err;
   char name[32];
-  u16_t ipaddr[2];
+  uip_ipaddr_t ipaddr;
 };
 
 #ifndef UIP_CONF_RESOLV_ENTRIES
@@ -132,13 +133,13 @@ static u8_t seqno;
 static struct uip_udp_conn *resolv_conn = NULL;
 
 
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /** \internal
  * Walk through a compact encoded DNS name and return the end of it.
  *
  * \return The end of the name.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 static unsigned char *
 parse_name(unsigned char *query)
 {
@@ -157,12 +158,12 @@ parse_name(unsigned char *query)
   /*  printf("\n");*/
   return query + 1;
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /** \internal
  * Runs through the list of names to see if there are any that have
  * not yet been queried and, if so, sends out a query.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 static void
 check_entries(void)
 {
@@ -183,7 +184,7 @@ check_entries(void)
 	    resolv_found(namemapptr->name, NULL);
 	    continue;
 	  }
-	  namemapptr->tmr = namemapptr->retries;	  
+	  namemapptr->tmr = namemapptr->retries;
 	} else {
 	  /*	  printf("Timer %d\n", namemapptr->tmr);*/
 	  /* Its timer has not run out, so we move on to next
@@ -225,11 +226,11 @@ check_entries(void)
     }
   }
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /** \internal
  * Called when new UDP data arrives.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 static void
 newdata(void)
 {
@@ -282,7 +283,7 @@ newdata(void)
     while(nanswers > 0) {
       /* The first byte in the answer resource record determines if it
 	 is a compressed record or a normal one. */
-      if(*nameptr & 0xc0) {       
+      if(*nameptr & 0xc0) {
 	/* Compressed name. */
 	nameptr +=2;
 	/*	printf("Compressed anwser\n");*/
@@ -321,13 +322,13 @@ newdata(void)
   }
 
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /** \internal
  * The main UDP function.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 void
-udp_appcall(void)
+resolv_appcall(void)
 {
   if(uip_udp_conn->rport == HTONS(53)) {
     if(uip_poll()) {
@@ -335,16 +336,16 @@ udp_appcall(void)
     }
     if(uip_newdata()) {
       newdata();
-    }       
+    }
   }
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /**
  * Queues a name so that a question for the name will be sent out.
  *
  * \param name The hostname that is to be queried.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 void
 resolv_query(char *name)
 {
@@ -376,12 +377,8 @@ resolv_query(char *name)
   nameptr->state = STATE_NEW;
   nameptr->seqno = seqno;
   ++seqno;
-
-  /*  if(resolv_conn != NULL) {
-      dispatcher_emit(uip_signal_poll_udp, resolv_conn, DISPATCHER_BROADCAST);
-      } */      
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /**
  * Look up a hostname in the array of known hostnames.
  *
@@ -394,7 +391,7 @@ resolv_query(char *name)
  * address, or NULL if the hostname was not found in the array of
  * hostnames.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 u16_t *
 resolv_lookup(char *name)
 {
@@ -406,13 +403,13 @@ resolv_lookup(char *name)
   for(i = 0; i < RESOLV_ENTRIES; ++i) {
     nameptr = &names[i];
     if(nameptr->state == STATE_DONE &&
-       strcmp(name, nameptr->name) == 0) {            
+       strcmp(name, nameptr->name) == 0) {
       return nameptr->ipaddr;
     }
   }
   return NULL;
-}  
-/*-----------------------------------------------------------------------------------*/
+}
+/*---------------------------------------------------------------------------*/
 /**
  * Obtain the currently configured DNS server.
  *
@@ -420,7 +417,7 @@ resolv_lookup(char *name)
  * the currently configured DNS server or NULL if no DNS server has
  * been configured.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 u16_t *
 resolv_getserver(void)
 {
@@ -429,14 +426,14 @@ resolv_getserver(void)
   }
   return resolv_conn->ripaddr;
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /**
  * Configure which DNS server to use for queries.
  *
  * \param dnsserver A pointer to a 4-byte representation of the IP
  * address of the DNS server to be configured.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 void
 resolv_conf(u16_t *dnsserver)
 {
@@ -444,13 +441,13 @@ resolv_conf(u16_t *dnsserver)
     uip_udp_remove(resolv_conn);
   }
   
-  resolv_conn = uip_udp_new(dnsserver, 53);
+  resolv_conn = uip_udp_new(dnsserver, HTONS(53));
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /**
  * Initalize the resolver.
  */
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 void
 resolv_init(void)
 {
@@ -461,7 +458,7 @@ resolv_init(void)
   }
 
 }
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
 /** @} */
 /** @} */

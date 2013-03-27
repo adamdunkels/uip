@@ -10,7 +10,10 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. The name of the author may not be used to endorse or promote
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *      This product includes software developed by Adam Dunkels.
+ * 4. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -28,7 +31,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: tapdev.h,v 1.1.2.1 2003/10/04 22:54:17 adam Exp $
+ * $Id: tapdev.h,v 1.1 2002/01/10 06:22:56 adam Exp $
  *
  */
 

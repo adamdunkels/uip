@@ -1,3 +1,5 @@
+all: htmldoc pdfdoc
+
 htmldoc:
 	doxygen Doxyfile
 

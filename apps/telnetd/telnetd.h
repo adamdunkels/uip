@@ -1,29 +1,19 @@
-/**
- * \addtogroup telnetd
- * @{
- */
-
-/**
- * \file
- * Header file for the telnet server.
- * \author Adam Dunkels <adam@dunkels.com>
- */
-
 /*
- * Copyright (c) 2002, Adam Dunkels.
- * All rights reserved. 
+ * Copyright (c) 2003, Adam Dunkels.
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
- * 1. Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in the 
- *    documentation and/or other materials provided with the distribution. 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above
+ *    copyright notice, this list of conditions and the following
+ *    disclaimer in the documentation and/or other materials provided
+ *    with the distribution.
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
- *    written permission.  
+ *    written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -35,80 +25,39 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * This file is part of the uIP TCP/IP stack.
+ * This file is part of the uIP TCP/IP stack
  *
- * $Id: telnetd.h,v 1.1.2.2 2003/10/07 13:22:27 adam Exp $
+ * $Id: telnetd.h,v 1.2 2006/06/07 09:43:54 adam Exp $
  *
  */
 #ifndef __TELNETD_H__
 #define __TELNETD_H__
 
-#include "uip.h"
+#include "uipopt.h"
 
-/**
- * The maximum length of a telnet line.
- *
- * \hideinitializer
- */
-#define TELNETD_LINELEN 36
+void telnetd_appcall(void);
 
-/**
- * The number of output lines being buffered for all telnet
- * connections.
- *
- * \hideinitializer
- */
-#define TELNETD_NUMLINES 24
+#ifndef TELNETD_CONF_LINELEN
+#define TELNETD_CONF_LINELEN 40
+#endif
+#ifndef TELNETD_CONF_NUMLINES
+#define TELNETD_CONF_NUMLINES 16
+#endif
 
-/**
- * A telnet connection structure.
- */
 struct telnetd_state {
-  char *lines[TELNETD_NUMLINES];
-  char buf[TELNETD_LINELEN];
+  char *lines[TELNETD_CONF_NUMLINES];
+  char buf[TELNETD_CONF_LINELEN];
   char bufptr;
+  u8_t numsent;
   u8_t state;
 };
 
-
-/**
- * Callback function that is called when a telnet connection has been
- * established.
- *
- * \param s The telnet connection. 
- */
-void telnetd_connected(struct telnetd_state *s);
-
-/**
- * Callback function that is called when a line of text has arrived on
- * a telnet connection.
- *
- * \param s The telnet connection.
- *
- * \param cmd The line of text.
- */
-void telnetd_input(struct telnetd_state *s, char *cmd);
-
-
-void telnetd_close(struct telnetd_state *s);
-void telnetd_output(struct telnetd_state *s, char *s1, char *s2);
-void telnetd_prompt(struct telnetd_state *s, char *str);
-
-void telnetd_app(void);
+typedef struct telnetd_state uip_tcp_appstate_t;
 
 #ifndef UIP_APPCALL
-#define UIP_APPCALL     telnetd_app
+#define UIP_APPCALL     telnetd_appcall
 #endif
 
-#ifndef UIP_APPSTATE_SIZE
-#define UIP_APPSTATE_SIZE (sizeof(struct telnetd_state))
-#endif
-
-void telnetd_init(void);
-
-
-#endif /* __TELNET_H__ */
-
-/** @} */
+#endif /* __TELNETD_H__ */

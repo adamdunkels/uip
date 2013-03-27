@@ -1,5 +1,5 @@
 /**
- * \addtogroup exampleapps
+ * \addtogroup apps
  * @{
  */
 
@@ -22,20 +22,20 @@
 
 /*
  * Copyright (c) 2002, Adam Dunkels.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
- * 1. Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above
  *    copyright notice, this list of conditions and the following
  *    disclaimer in the documentation and/or other materials provided
- *    with the distribution. 
+ *    with the distribution.
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
- *    written permission.  
+ *    written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -47,15 +47,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * This file is part of the "contiki" web browser.
+ * This file is part of the uIP TCP/IP stack.
  *
- * $Id: webclient.c,v 1.1.2.5 2003/10/06 22:56:45 adam Exp $
+ * $Id: webclient.c,v 1.2 2006/06/11 21:46:37 adam Exp $
  *
  */
 
 #include "uip.h"
+#include "uiplib.h"
 #include "webclient.h"
 #include "resolv.h"
 
@@ -78,22 +79,6 @@
 #define ISO_cr       0x0d
 #define ISO_space    0x20
 
-struct webclient_state {
-  u8_t timer;
-  u8_t state;
-  u8_t httpflag;
-
-  u16_t port;
-  char host[40];
-  char file[WWW_CONF_MAX_URLLEN];  
-  u16_t getrequestptr;
-  u16_t getrequestleft;
-  
-  char httpheaderline[200];
-  u16_t httpheaderlineptr;
-
-  char mimetype[32];
-};
 
 static struct webclient_state s;
 
@@ -155,13 +140,13 @@ unsigned char
 webclient_get(char *host, u16_t port, char *file)
 {
   struct uip_conn *conn;
-  u16_t *ipaddr; 
-  static u16_t addr[2];
+  uip_ipaddr_t *ipaddr;
+  static uip_ipaddr_t addr;
   
   /* First check if the host is an IP address. */
-  ipaddr = &addr[0];
-  if(uip_main_ipaddrconv(host, (unsigned char *)addr) == 0) {    
-    ipaddr = resolv_lookup(host);
+  ipaddr = &addr;
+  if(uiplib_ipaddrconv(host, (unsigned char *)addr) == 0) {
+    ipaddr = (uip_ipaddr_t *)resolv_lookup(host);
     
     if(ipaddr == NULL) {
       return 0;
@@ -182,11 +167,12 @@ webclient_get(char *host, u16_t port, char *file)
   return 1;
 }
 /*-----------------------------------------------------------------------------------*/
-static unsigned char * CC_FASTCALL
+static unsigned char *
 copy_string(unsigned char *dest,
 	    const unsigned char *src, unsigned char len)
 {
-  return strcpy(dest, src) + len;
+  strncpy(dest, src, len);
+  return dest + len;
 }
 /*-----------------------------------------------------------------------------------*/
 static void
@@ -218,7 +204,7 @@ senddata(void)
       s.getrequestleft;
     uip_send(&(getrequest[s.getrequestptr]), len);
   }
-}  
+}
 /*-----------------------------------------------------------------------------------*/
 static void
 acked(void)
@@ -240,8 +226,8 @@ parse_statusline(u16_t len)
   char *cptr;
   
   while(len > 0 && s.httpheaderlineptr < sizeof(s.httpheaderline)) {
-    s.httpheaderline[s.httpheaderlineptr] = *uip_appdata;
-    ++uip_appdata;
+    s.httpheaderline[s.httpheaderlineptr] = *(char *)uip_appdata;
+    ++((char *)uip_appdata);
     --len;
     if(s.httpheaderline[s.httpheaderlineptr] == ISO_nl) {
 
@@ -308,8 +294,8 @@ parse_headers(u16_t len)
   static unsigned char i;
   
   while(len > 0 && s.httpheaderlineptr < sizeof(s.httpheaderline)) {
-    s.httpheaderline[s.httpheaderlineptr] = *uip_appdata;
-    ++uip_appdata;
+    s.httpheaderline[s.httpheaderlineptr] = *(char *)uip_appdata;
+    ++((char *)uip_appdata);
     --len;
     if(s.httpheaderline[s.httpheaderlineptr] == ISO_nl) {
       /* We have an entire HTTP header line in s.httpheaderline, so
@@ -323,7 +309,7 @@ parse_headers(u16_t len)
       }
 
       s.httpheaderline[s.httpheaderlineptr - 1] = 0;
-      /* Check for specific HTTP header fields. */      
+      /* Check for specific HTTP header fields. */
       if(casecmp(s.httpheaderline, http_content_type,
 		     sizeof(http_content_type) - 1) == 0) {
 	/* Found Content-type field. */
@@ -339,7 +325,7 @@ parse_headers(u16_t len)
 	  sizeof(http_location) - 1;
 	
 	if(strncmp(cptr, http_http, 7) == 0) {
-	  cptr += 7; 
+	  cptr += 7;
 	  for(i = 0; i < s.httpheaderlineptr - 7; ++i) {
 	    if(*cptr == 0 ||
 	       *cptr == '/' ||
@@ -359,7 +345,7 @@ parse_headers(u16_t len)
 
       /* We're done parsing, so we reset the pointer and start the
 	 next line. */
-      s.httpheaderlineptr = 0;      
+      s.httpheaderlineptr = 0;
     } else {
       ++s.httpheaderlineptr;
     }
@@ -388,7 +374,8 @@ newdata(void)
   }
 }
 /*-----------------------------------------------------------------------------------*/
-void webclient_appcall(void)
+void
+webclient_appcall(void)
 {
   if(uip_connected()) {
     s.timer = 0;
@@ -398,19 +385,11 @@ void webclient_appcall(void)
     return;
   }
 
-  
-  if(state == NULL) {
-    uip_abort();
-    return;
-  }
-
   if(s.state == WEBCLIENT_STATE_CLOSE) {
     webclient_closed();
     uip_abort();
     return;
-  }    
-  
-  
+  }
 
   if(uip_aborted()) {
     webclient_aborted();
