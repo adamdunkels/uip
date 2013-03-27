@@ -1,0 +1,16 @@
+This directory is a port of uIP to the Hitachi H8S2144 microprocessor.
+In order to compile it, you need gcc-2.95+ (or later version) C compiler 
+for h8300-hms.
+
+This can be downloaded from 
+http://sourceforge.net/project/showfiles.php?group_id=24580&release_id=34503
+
+Tested on H8S2144 using sci1 at 9600 baud using linux slip setup. 
+
+slattach -p slip /dev/modem -s 9600 -d -L -l &
+sleep 3s
+ifconfig sl0 192.168.0.1 pointopoint 192.168.0.2 mtu 255 netmask 255.255.255.0 up
+sleep 3s
+route add 192.168.0.2 mss 195 window 195 dev sl0 
+
+

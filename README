@@ -1,0 +1,13 @@
+uIP is a very small implementation of the TCP/IP stack that is written
+by Adam Dunkels <adam@dunkels.com>. More information can be obtained 
+at the uIP homepage at <http://dunkels.com/adam/uip/>.
+
+This is version $Name: uip-0-5-0 $.
+
+The directory structure look as follows:
+
+apps/  - contains some sample applications
+bsd/   - uIP as a user space process under FreeBSD
+cc65/  - uIP for the 6502 CPU
+h8/    - uIP for the H8S2144 CPU
+uip/   - actual uIP code

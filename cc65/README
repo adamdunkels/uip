@@ -1,0 +1,5 @@
+This directory is a port of uIP to the popular Commodore 64 home
+computer. In order to compile it, you need the cc65 C compiler that
+can be downloaded from <http://www.cc65.org/>.
+
+The "tunslip" executable can be used on a FreeBSD system to create a virtual SLIP interface between the kernel and the Vice emulator.

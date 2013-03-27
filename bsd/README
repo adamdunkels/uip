@@ -1,0 +1,32 @@
+This directory includes example code of how to use the uIP TCP/IP
+stack. The code is used for testing uIP as a user process under
+FreeBSD.
+
+Follow these steps to test uIP under FreeBSD:
+
+1) Compile the code using GNU make (gmake):
+
+   > gmake
+
+2) su to root:
+
+   > su
+   (type password for the root account)
+
+3) run the "uip" binary:
+
+   # ./uip
+
+4) uIP is now up and running with IP address 192.168.0.2. You can now
+   test uIP by firing up another window and issue the following
+   commands:
+
+   > ping 192.168.0.2
+
+   > telnet 192.168.0.2 http
+
+   It it also possible to connect to the small web server using
+   Netscape and the URL <http://192.168.0.2/>. Be sure to turn off any
+   proxies first.
+
+Please see the files "uipopt.h" and "main.c" for more information.

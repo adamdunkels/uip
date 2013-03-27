@@ -1,0 +1,177 @@
+/*
+ * Linker Command script for H8S
+ */
+
+ENTRY(_start)
+OUTPUT_FORMAT(srec)
+OUTPUT_ARCH(h8300s)
+SEARCH_DIR(/usr/local/h8300-hms/lib/h8300s)
+
+MEMORY
+{
+    vectors     : ORIGIN = 0x000000, LENGTH = 0x0200
+    introm      : ORIGIN = 0x000200, LENGTH = 128K - 0x0200
+    intram1     : ORIGIN = 0xFFE080, LENGTH = 0x0F80
+
+}
+
+/* .vectors     system interrupt vector storage                 RO */
+/* .text        data/program area                               RO */
+/* _ldata       location of initialising data                   RO */
+/* _data        initialised variable data                       RW */
+/* .bss         uninitialised variables cleared by CRT0.S       RW */
+/* _stack       initial stack pointer (TOP OF RAM +1)           RW */
+
+SECTIONS
+{
+    .text :
+    {
+        _text = .;
+        *(.rodata)
+        *(.strings)
+        *(.text)
+
+        _etext = .;
+    } >introm                       /* text */
+
+    _ldata = LOADADDR(.text) + SIZEOF(.text);
+
+    .data : AT ( _ldata )
+    {
+        _data = .;
+        *(.data)
+        _edata = .;
+    } >intram1                       /* data */
+
+    _end = LOADADDR(.data) + SIZEOF(.data);
+
+    .bss . :
+    {
+        _bss = .;
+        *(.bss)
+        *(COMMON)
+        *(.tiny)
+        _ebss = .;
+    } >intram1                      /* data */
+
+    _stack = 0x00FFF000;		/* one above last ram location */
+
+    .vectors :
+    {
+        LONG(ABSOLUTE(DEFINED(_start)           ? _start        : _default_irq))    /* (  0) Automatic Reset */
+        LONG(ABSOLUTE(DEFINED(_sys1_irq)        ? _sys1_irq     : _default_irq))    /* (  1) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys2_irq)        ? _sys2_irq     : _default_irq))    /* (  2) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys3_irq)        ? _sys3_irq     : _default_irq))    /* (  3) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys4_irq)        ? _sys4_irq     : _default_irq))    /* (  4) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys5_irq)        ? _sys5_irq     : _default_irq))    /* (  5) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_DirTrans_irq)    ? _DirTrans_irq : _default_irq))    /* (  6) Direct Transition */
+        LONG(ABSOLUTE(DEFINED(_nmi_irq)         ? _nmi_irq      : _default_irq))    /* (  7) External NMI */
+        LONG(ABSOLUTE(DEFINED(_trap_a_irq)      ? _trap_a_irq   : _default_irq))    /* (  8) Trap A */
+        LONG(ABSOLUTE(DEFINED(_trap_b_irq)      ? _trap_b_irq   : _default_irq))    /* (  9) Trap B */
+
+        LONG(ABSOLUTE(DEFINED(_trap_c_irq)      ? _trap_c_irq   : _default_irq))    /* ( 10) Trap C */
+        LONG(ABSOLUTE(DEFINED(_trap_d_irq)      ? _trap_d_irq   : _default_irq))    /* ( 11) Trap D */
+        LONG(ABSOLUTE(DEFINED(_sys12_irq)       ? _sys12_irq    : _default_irq))    /* ( 12) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys13_irq)       ? _sys13_irq    : _default_irq))    /* ( 13) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys14_irq)       ? _sys14_irq    : _default_irq))    /* ( 14) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys15_irq)       ? _sys15_irq    : _default_irq))    /* ( 15) System Reserved */
+        LONG(ABSOLUTE(DEFINED(_ext0_irq)        ? _ext0_irq     : _default_irq))    /* ( 16) External IRQ0 */
+        LONG(ABSOLUTE(DEFINED(_ext1_irq)        ? _ext1_irq     : _default_irq))    /* ( 17) External IRQ1 */
+        LONG(ABSOLUTE(DEFINED(_ext2_irq)        ? _ext2_irq     : _default_irq))    /* ( 18) External IRQ2 */
+        LONG(ABSOLUTE(DEFINED(_ext3_irq)        ? _ext3_irq     : _default_irq))    /* ( 19) External IRQ3 */
+
+        LONG(ABSOLUTE(DEFINED(_ext4_irq)        ? _ext4_irq     : _default_irq))    /* ( 20) External IRQ4 */
+        LONG(ABSOLUTE(DEFINED(_ext5_irq)        ? _ext5_irq     : _default_irq))    /* ( 21) External IRQ5 */
+        LONG(ABSOLUTE(DEFINED(_ext6_irq)        ? _ext6_irq     : _default_irq))    /* ( 22) External IRQ6, KIN7..KIN0 */
+        LONG(ABSOLUTE(DEFINED(_ext7_irq)        ? _ext7_irq     : _default_irq))    /* ( 23) External IRQ7, KIN15..KIN8 */
+        LONG(ABSOLUTE(DEFINED(_swdtend_irq)     ? _swdtend_irq  : _default_irq))    /* ( 24) SWDTEND (2148 DTC) */
+        LONG(ABSOLUTE(DEFINED(_wovi0_irq)       ? _wovi0_irq    : _default_irq))    /* ( 25) WOVI0 (Watchdog timer 0) */
+        LONG(ABSOLUTE(DEFINED(_wovi1_irq)       ? _wovi1_irq    : _default_irq))    /* ( 26) WOVI1 (Watchdog timer 1) */
+        LONG(ABSOLUTE(DEFINED(_pc_brk_irq)      ? _pc_brk_irq   : _default_irq))    /* ( 27) PC Break */
+        LONG(ABSOLUTE(DEFINED(_adc_end_irq)     ? _adc_end_irq  : _default_irq))    /* ( 28) A/D Conversion end. */
+        LONG(ABSOLUTE(DEFINED(_sys29_irq)       ? _sys29_irq    : _default_irq))    /* ( 29) Reserved */
+
+        LONG(ABSOLUTE(DEFINED(_sys30_irq)       ? _sys30_irq    : _default_irq))    /* ( 30) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys31_irq)       ? _sys31_irq    : _default_irq))    /* ( 31) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys32_irq)       ? _sys32_irq    : _default_irq))    /* ( 32) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys33_irq)       ? _sys33_irq    : _default_irq))    /* ( 33) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys34_irq)       ? _sys34_irq    : _default_irq))    /* ( 34) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys35_irq)       ? _sys35_irq    : _default_irq))    /* ( 35) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys36_irq)       ? _sys36_irq    : _default_irq))    /* ( 36) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys37_irq)       ? _sys37_irq    : _default_irq))    /* ( 37) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys38_irq)       ? _sys38_irq    : _default_irq))    /* ( 38) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys39_irq)       ? _sys39_irq    : _default_irq))    /* ( 39) Reserved */
+
+        LONG(ABSOLUTE(DEFINED(_sys40_irq)       ? _sys40_irq    : _default_irq))    /* ( 40) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys41_irq)       ? _sys41_irq    : _default_irq))    /* ( 41) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys42_irq)       ? _sys42_irq    : _default_irq))    /* ( 42) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys43_irq)       ? _sys43_irq    : _default_irq))    /* ( 43) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys44_irq)       ? _sys44_irq    : _default_irq))    /* ( 44) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys45_irq)       ? _sys45_irq    : _default_irq))    /* ( 45) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys46_irq)       ? _sys46_irq    : _default_irq))    /* ( 46) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys47_irq)       ? _sys47_irq    : _default_irq))    /* ( 47) Reserved */
+        LONG(ABSOLUTE(DEFINED(_frt_icia_irq)    ? _frt_icia_irq : _default_irq))    /* ( 48) ICIA (Input Capture A) */
+        LONG(ABSOLUTE(DEFINED(_frt_icib_irq)    ? _frt_icib_irq : _default_irq))    /* ( 49) ICIB (Input Capture B) */
+
+        LONG(ABSOLUTE(DEFINED(_frt_icic_irq)    ? _frt_icic_irq : _default_irq))    /* ( 50) ICIC (Input Capture C) */
+        LONG(ABSOLUTE(DEFINED(_frt_icid_irq)    ? _frt_icid_irq : _default_irq))    /* ( 51) ICID (Input Capture D) */
+        LONG(ABSOLUTE(DEFINED(_frt_oca_irq)     ? _frt_oca_irq  : _default_irq))    /* ( 52) OCIA (Output Compare A) */
+        LONG(ABSOLUTE(DEFINED(_frt_ocb_irq)     ? _frt_ocb_irq  : _default_irq))    /* ( 53) OCIB (Output Compare B) */
+        LONG(ABSOLUTE(DEFINED(_frt_fovi_irq)    ? _frt_fovi_irq : _default_irq))    /* ( 54) FOVI (overflow) */
+        LONG(ABSOLUTE(DEFINED(_sys55_irq)       ? _sys55_irq    : _default_irq))    /* ( 55) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys56_irq)       ? _sys56_irq    : _default_irq))    /* ( 56) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys57_irq)       ? _sys57_irq    : _default_irq))    /* ( 57) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys58_irq)       ? _sys58_irq    : _default_irq))    /* ( 58) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys59_irq)       ? _sys59_irq    : _default_irq))    /* ( 59) Reserved */
+
+        LONG(ABSOLUTE(DEFINED(_sys60_irq)       ? _sys60_irq    : _default_irq))    /* ( 60) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys61_irq)       ? _sys61_irq    : _default_irq))    /* ( 61) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys62_irq)       ? _sys62_irq    : _default_irq))    /* ( 62) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys63_irq)       ? _sys63_irq    : _default_irq))    /* ( 63) Reserved */
+        LONG(ABSOLUTE(DEFINED(_tm0_cmai_irq)    ? _tm0_cmai_irq : _default_irq))    /* ( 64) CMIA0 (compare match A)        (8 bit timer 0) */
+        LONG(ABSOLUTE(DEFINED(_tm0_cmib_irq)    ? _tm0_cmib_irq : _default_irq))    /* ( 65) CMIB0 (compare match B) */
+        LONG(ABSOLUTE(DEFINED(_tm0_ovfi_irq)    ? _tm0_ovfi_irq : _default_irq))    /* ( 66) OVI0 (overflow) */
+        LONG(ABSOLUTE(DEFINED(_sys67_irq)       ? _sys67_irq    : _default_irq))    /* ( 67  )                      /* ( 67) Reserved */
+        LONG(ABSOLUTE(DEFINED(_tm1_cmia_irq)    ? _tm1_cmia_irq : _default_irq))    /* ( 68) CMIA1 (compare match A)        (8 bit timer 1) */
+        LONG(ABSOLUTE(DEFINED(_tm1_cmib_irq)    ? _tm1_cmib_irq : _default_irq))    /* ( 69) CMIB1 (compare match B) */
+
+        LONG(ABSOLUTE(DEFINED(_tm1_ovfi_irq)    ? _tm1_ovfi_irq : _default_irq))    /* ( 70) OVI1 (overflow) */
+        LONG(ABSOLUTE(DEFINED(_sys71_irq)       ? _sys71_irq    : _default_irq))    /* ( 71) Reserved */
+        LONG(ABSOLUTE(DEFINED(_tmy_cmia_irq)    ? _tmy_cmia_irq : _default_irq))    /* ( 72) CMIAY (compare match A)        (8 bit timer channels Y, X) */
+        LONG(ABSOLUTE(DEFINED(_tmy_cmib_irq)    ? _tmy_cmib_irq : _default_irq))    /* ( 73) CMIBY (compare match B) */
+        LONG(ABSOLUTE(DEFINED(_tmy_ovfi_irq)    ? _tmy_ovfi_irq : _default_irq))    /* ( 74) OVIY (overflow) */
+        LONG(ABSOLUTE(DEFINED(_tmx_ici_irq)     ? _tmx_ici_irq  : _default_irq))    /* ( 75) ICIX (2148 input capture X) */
+        LONG(ABSOLUTE(DEFINED(_ibf1_irq)        ? _ibf1_irq     : _default_irq))    /* ( 76) IBF1 (2148 IDR1 reception complete) */
+        LONG(ABSOLUTE(DEFINED(_ibf2_irq)        ? _ibf2_irq     : _default_irq))    /* ( 77) IBF2 (2148 IDR2 reception complete) (Host interface) */
+        LONG(ABSOLUTE(DEFINED(_sys78_irq)       ? _sys78_irq    : _default_irq))    /* ( 78) Reserved */
+        LONG(ABSOLUTE(DEFINED(_sys79_irq)       ? _sys79_irq    : _default_irq))    /* ( 79) Reserved */
+
+        LONG(ABSOLUTE(DEFINED(_sci0_eri_irq)    ? _sci0_eri_irq : _default_irq))    /* ( 80) ERI0 (Receive error 0)         (SCI Channel 0) */
+        LONG(ABSOLUTE(DEFINED(_sci0_rxi_irq)    ? _sci0_rxi_irq : _default_irq))    /* ( 81) RXI0 (Reception completed 0)                   */
+        LONG(ABSOLUTE(DEFINED(_sci0_tdre_irq)   ? _sci0_tdre_irq : _default_irq))   /* ( 82) TXI0 (Transmit data default_irq 0) */
+        LONG(ABSOLUTE(DEFINED(_sci0_tc_irq)     ? _sci0_tc_irq  : _default_irq))    /* ( 83) TEI0 (Transmission end 0) */
+        LONG(ABSOLUTE(DEFINED(_sci1_eri_irq)    ? _sci1_eri_irq : _default_irq))    /* ( 84) ERI1 (Receive error 1)         (SCI Channel 1) */
+        LONG(ABSOLUTE(DEFINED(_sci1_rxi_irq)    ? _sci1_rxi_irq : _default_irq))    /* ( 85) RXI1 (Reception completed 1)                   */
+        LONG(ABSOLUTE(DEFINED(_sci1_tdre_irq)   ? _sci1_tdre_irq : _default_irq))   /* ( 86) TXI1 (Transmit data default_irq 1) */
+        LONG(ABSOLUTE(DEFINED(_sci1_tc_irq)     ? _sci1_tc_irq  : _default_irq))    /* ( 87) TEI1 (Transmission end 1) */
+        LONG(ABSOLUTE(DEFINED(_sci2_eri_irq)    ? _sci2_eri_irq : _default_irq))    /* ( 88) ERI2 (Receive error 2)         (SCI Channel 2)Reserved */
+        LONG(ABSOLUTE(DEFINED(_sci2_rxi_irq)    ? _sci2_rxi_irq : _default_irq))    /* ( 89) RXI2 (Reception completed 2) */
+
+        LONG(ABSOLUTE(DEFINED(_sci2_tdre_irq)   ? _sci2_tdre_irq : _default_irq))   /* ( 90) TXI2 (Transmit data default_irq 2) */
+        LONG(ABSOLUTE(DEFINED(_sci2_tc_irq)     ? _sci2_tc_irq  : _default_irq))    /* ( 91) TEI2 (Transmission end 2) */
+        LONG(ABSOLUTE(DEFINED(_iici0_irq)       ? _iici0_irq    : _default_irq))    /* ( 92) IICI0 (2148 1-byte transmission/reception completed) (IIC Channel 0) */
+        LONG(ABSOLUTE(DEFINED(_ddcswi_irq)      ? _ddcswi_irq   : _default_irq))    /* ( 93) DDCSWI (2148 format switch) */
+        LONG(ABSOLUTE(DEFINED(_iici1_irq)       ? _iici1_irq    : _default_irq))    /* ( 94) IICI1 (2148 1-byte transmission/reception completed) (IIC Channel 1) */
+        LONG(ABSOLUTE(DEFINED(_sys95_irq)       ? _sys95_irq    : _default_irq))    /* ( 95) Reserved */
+        LONG(ABSOLUTE(DEFINED(_ps2ia_irq)       ? _ps2ia_irq    : _default_irq))    /* ( 96) PS2IA (2148 reception completed A)  (Keyboard buffer controller) */
+        LONG(ABSOLUTE(DEFINED(_ps2ib_irq)       ? _ps2ib_irq    : _default_irq))    /* ( 97) PS2IB (2148 reception completed B) */
+        LONG(ABSOLUTE(DEFINED(_ps2ic_irq)       ? _ps2ic_irq    : _default_irq))    /* ( 98) PS2IC (2148 reception completed C) */
+        LONG(ABSOLUTE(DEFINED(_sys99_irq)       ? _sys99_irq    : _default_irq))    /* ( 99) Reserved */
+
+        LONG(ABSOLUTE(DEFINED(_irqa_irq)        ? _irqa_irq     : _default_irq))    /* (100) Interrupt A    (USB Option ?) */
+        LONG(ABSOLUTE(DEFINED(_irqb_irq)        ? _irqb_irq     : _default_irq))    /* (101) Interrupt B */
+        LONG(ABSOLUTE(DEFINED(_irqc_irq)        ? _irqc_irq     : _default_irq))    /* (102) Interrupt C */
+        LONG(ABSOLUTE(DEFINED(_irqd_irq)        ? _irqd_irq     : _default_irq))    /* (103) Interrupt D */
+
+    }  > vectors
+}
