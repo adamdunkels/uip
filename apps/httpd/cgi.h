@@ -31,7 +31,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: cgi.h,v 1.1 2001/10/19 07:46:01 adam Exp $
+ * $Id: cgi.h,v 1.3 2002/01/10 19:18:12 adam Exp $
  *
  */
 

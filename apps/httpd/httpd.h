@@ -31,7 +31,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: httpd.h,v 1.2 2001/10/19 07:46:01 adam Exp $
+ * $Id: httpd.h,v 1.3 2002/01/15 17:22:08 adam Exp $
  *
  */
 
@@ -55,8 +55,7 @@ struct httpd_state {
 
 
 /* UIP_APPSTATE_SIZE: The size of the application-specific state
-   stored in the uip_conn structure. See the file "uipstruct.h" for
-   more information. */
+   stored in the uip_conn structure. */
 #define UIP_APPSTATE_SIZE (sizeof(struct httpd_state))
 
 #define FS_STATISTICS 1

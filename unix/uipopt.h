@@ -31,7 +31,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uipopt.h,v 1.6 2002/01/11 12:43:14 adam Exp $
+ * $Id: uipopt.h,v 1.5 2002/01/13 21:12:41 adam Exp $
  *
  */
 
@@ -68,24 +68,24 @@ typedef unsigned short u16_t;
 #define UIP_IPADDR3     2
 
 /* UIP_NETMASK: The netmask. */
-#define UIP_NETMASK0 255
-#define UIP_NETMASK1 255
-#define UIP_NETMASK2 255
-#define UIP_NETMASK3 0
+#define UIP_NETMASK0    255
+#define UIP_NETMASK1    255
+#define UIP_NETMASK2    255
+#define UIP_NETMASK3    0
 
 /* UIP_DRIPADDR: IP address of the default router. */
-#define UIP_DRIPADDR0 192
-#define UIP_DRIPADDR1 168 
-#define UIP_DRIPADDR2 0
-#define UIP_DRIPADDR3 1
+#define UIP_DRIPADDR0   192
+#define UIP_DRIPADDR1   168 
+#define UIP_DRIPADDR2   0
+#define UIP_DRIPADDR3   1
 
 /* UIP_ETHADDR: The Ethernet address. */
-#define UIP_ETHADDR0 0x00
-#define UIP_ETHADDR1 0xbd
-#define UIP_ETHADDR2 0x3b
-#define UIP_ETHADDR3 0x33
-#define UIP_ETHADDR4 0x05
-#define UIP_ETHADDR5 0x71
+#define UIP_ETHADDR0    0x00
+#define UIP_ETHADDR1    0xbd
+#define UIP_ETHADDR2    0x3b
+#define UIP_ETHADDR3    0x33
+#define UIP_ETHADDR4    0x05
+#define UIP_ETHADDR5    0x71
 
 
 /*-----------------------------------------------------------------------------------*/
@@ -101,27 +101,27 @@ typedef unsigned short u16_t;
    this. */
 #include "httpd.h"
 
-/* UIP_CONNS: The maximum number of simultaneously active
-   connections. */
-#define UIP_CONNS       10
-
-/* UIP_LISTENPORTS: The maximum number of simultaneously listening TCP
-   ports. */
-#define UIP_LISTENPORTS 1
-
 /* UIP_ACTIVE_OPEN: Determines if support for opening connections from
    uIP should be compiled in. If this isn't needed for your
    application, don't turn it on. (A web server doesn't need this, for
    instance.) */
 #define UIP_ACTIVE_OPEN 0
 
+/* UIP_CONNS: The maximum number of simultaneously active
+   connections. */
+#define UIP_CONNS       10
+
+/* UIP_LISTENPORTS: The maximum number of simultaneously listening TCP
+   ports. For a web server, 1 is enough here. */
+#define UIP_LISTENPORTS 10
+
 /* UIP_BUFSIZE: The size of the buffer that holds incoming and
    outgoing packets. */
-#define UIP_BUFSIZE     160
+#define UIP_BUFSIZE     180
 
 /* UIP_STATISTICS: Determines if statistics support should be compiled
    in. The statistics is useful for debugging and to show the user. */
-#define UIP_STATISTICS  1
+#define UIP_STATISTICS  0
 
 /* UIP_LOGGING: Determines if logging of certain events should be
    compiled in. Useful mostly for debugging. The function uip_log(char
@@ -132,17 +132,13 @@ typedef unsigned short u16_t;
 /* UIP_LLH_LEN: The link level header length; this is the offset into
    the uip_buf where the IP header can be found. For Ethernet, this
    should be set to 14. For SLIP, this should be set to 0. */
-#define UIP_LLH_LEN     0
+#define UIP_LLH_LEN     14
 
 /*-----------------------------------------------------------------------------------*/
 /* The following configuration options can be tweaked for your
  * project, but you are probably safe to use the default values. The
- * options are listed in order of importance.
+ * options are listed in order of tweakability.
  */
-
-/* UIP_MAXRTX: The maximum number of times a segment should be
-   retransmitted before the connection should be aborted. */
-#define UIP_MAXRTX      8
 
 /* UIP_ARPTAB_SIZE: The size of the ARP table - use a larger value if
    this uIP node will have many connections from the local network. */
@@ -156,6 +152,10 @@ typedef unsigned short u16_t;
 /* UIP_RTO: The retransmission timeout counted in timer pulses (i.e.,
    the speed of the periodic timer, usually one second). */
 #define UIP_RTO         3
+
+/* UIP_MAXRTX: The maximum number of times a segment should be
+   retransmitted before the connection should be aborted. */
+#define UIP_MAXRTX      8
 
 /* UIP_TCP_MSS: The TCP maximum segment size. This should be set to
    at most UIP_BUFSIZE - UIP_LLH_LEN - 40. */

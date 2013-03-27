@@ -31,7 +31,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uip_arch.c,v 1.8 2001/11/13 06:46:05 adam Exp $
+ * $Id: uip_arch.c,v 1.1 2002/01/10 06:22:56 adam Exp $
  *
  */
 

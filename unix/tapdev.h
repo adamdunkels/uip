@@ -31,15 +31,15 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: tundev.h,v 1.2 2001/09/14 23:02:25 adam Exp $
+ * $Id: tapdev.h,v 1.1 2002/01/10 06:22:56 adam Exp $
  *
  */
 
-#ifndef __TUNDEV_H__
-#define __TUNDEV_H__
+#ifndef __TAPDEV_H__
+#define __TAPDEV_H__
 
-void tundev_init(void);
-unsigned int tundev_read(void);
-void tundev_send(void);
+void tapdev_init(void);
+unsigned int tapdev_read(void);
+void tapdev_send(void);
 
-#endif /* __TUNDEV_H__ */
+#endif /* __TAPDEV_H__ */
