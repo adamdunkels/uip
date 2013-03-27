@@ -1,3 +1,14 @@
+/**
+ * \addtogroup httpd
+ * @{
+ */
+
+/**
+ * \file
+ * HTTP server read-only file system header file.
+ * \author Adam Dunkels <adam@dunkels.com>
+ */
+ 
 /*
  * Copyright (c) 2001, Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -10,11 +21,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by the Swedish Institute
- *      of Computer Science and its contributors.
- * 4. Neither the name of the Institute nor the names of its contributors 
+ * 3. Neither the name of the Institute nor the names of its contributors 
  *    may be used to endorse or promote products derived from this software 
  *    without specific prior written permission. 
  *
@@ -34,20 +41,29 @@
  * 
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: fs.h,v 1.6 2001/11/25 18:47:36 adam Exp $
+ * $Id: fs.h,v 1.6.2.3 2003/10/07 13:22:27 adam Exp $
  */
 #ifndef __FS_H__
 #define __FS_H__
 
 #include "uip.h"
 
+/**
+ * An open file in the read-only file system.
+ */
 struct fs_file {
-  char *data;
-  int len;
+  char *data;  /**< The actual file data. */
+  int len;     /**< The length of the file data. */
 };
 
-/* file must be allocated by caller and will be filled in
-   by the function. */
+/**
+ * Open a file in the read-only file system.
+ *
+ * \param name The name of the file.
+ *
+ * \param file The file pointer, which must be allocated by caller and
+ * will be filled in by the function.
+ */
 int fs_open(const char *name, struct fs_file *file);
 
 #ifdef FS_STATISTICS
@@ -56,6 +72,9 @@ u16_t fs_count(char *name);
 #endif /* FS_STATISTICS */
 #endif /* FS_STATISTICS */
 
+/**
+ * Initialize the read-only file system.
+ */
 void fs_init(void);
 
 #endif /* __FS_H__ */

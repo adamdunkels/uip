@@ -1,3 +1,16 @@
+/**
+ * \addtogroup httpd
+ * @{
+ */
+
+/**
+ * \file
+ * HTTP server read-only file system code.
+ * \author Adam Dunkels <adam@dunkels.com>
+ *
+ * A simple read-only filesystem. 
+ */
+ 
 /*
  * Copyright (c) 2001, Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -10,11 +23,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by the Swedish Institute
- *      of Computer Science and its contributors.
- * 4. Neither the name of the Institute nor the names of its contributors 
+ * 3. Neither the name of the Institute nor the names of its contributors 
  *    may be used to endorse or promote products derived from this software 
  *    without specific prior written permission. 
  *
@@ -34,10 +43,11 @@
  * 
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: fs.c,v 1.6 2001/11/25 18:47:36 adam Exp $
+ * $Id: fs.c,v 1.7.2.3 2003/10/07 13:22:27 adam Exp $
  */
 
 #include "uip.h"
+#include "httpd.h"
 #include "fs.h"
 #include "fsdata.h"
 

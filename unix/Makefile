@@ -30,34 +30,39 @@
 #
 # This file is part of the uIP TCP/IP stack.
 #
-# $Id: Makefile,v 1.2 2002/01/10 07:34:41 adam Exp $
+# $Id: Makefile,v 1.8.2.2 2003/10/04 22:54:17 adam Exp $
 #
 
 CC=gcc
-CFLAGS=-Wall -g -fpack-struct -I../uip -I. -I../apps/httpd -O1
+CFLAGS=-Wall -g -I../uip -I. -I../apps/httpd -I../apps/resolv -I../apps/webclient -I../apps/smtp  -I../apps/telnet -fpack-struct
 
 %.o:
 	$(CC) $(CFLAGS) -c $(<:.o=.c)
 
 
-uip: uip.o uip_arch.o tapdev.o httpd.o main.o fs.o uip_arp.o cgi.o
+uip: uip.o uip_arch.o tapdev.o httpd.o main.o fs.o uip_arp.o cgi.o 
 
-httpd.o: ../apps/httpd/httpd.c ../apps/httpd/httpd.h ../uip/uip.h \
- uipopt.h ../apps/httpd/fs.h
-cgi.o: ../apps/httpd/cgi.c ../uip/uip.h uipopt.h ../apps/httpd/httpd.h \
- ../apps/httpd/cgi.h ../apps/httpd/fs.h
-fs.o: ../apps/httpd/fs.c ../uip/uip.h uipopt.h ../apps/httpd/httpd.h \
- ../apps/httpd/fs.h ../apps/httpd/fsdata.h \
- ../apps/httpd/fsdata.c
 tapdev.o: tapdev.c uipopt.h
 main.o: main.c ../uip/uip.h uipopt.h ../apps/httpd/httpd.h \
  tapdev.h
-uip_arch.o: uip_arch.c uip_arch.h ../uip/uip.h uipopt.h \
+uip_arch.o: uip_arch.c ../uip/uip_arch.h ../uip/uip.h uipopt.h \
  ../apps/httpd/httpd.h 
 uip.o: ../uip/uip.c ../uip/uip.h uipopt.h ../apps/httpd/httpd.h 
 
 uip_arp.o: ../uip/uip_arp.c ../uip/uip_arp.h ../uip/uip.h uipopt.h \
- ../apps/httpd/httpd.h 
+ ../apps/httpd/httpd.h
+	$(CC) -o uip_arp.o $(CFLAGS) -fpack-struct -c ../uip/uip_arp.c
+
+
+cgi.o: ../apps/httpd/cgi.c ../uip/uip.h uipopt.h ../apps/smtp/smtp.h \
+ ../apps/httpd/cgi.h ../apps/httpd/httpd.h ../apps/httpd/fs.h
+fs.o: ../apps/httpd/fs.c ../uip/uip.h uipopt.h ../apps/smtp/smtp.h \
+ ../apps/httpd/httpd.h ../apps/httpd/fs.h ../apps/httpd/fsdata.h \
+ ../apps/httpd/fsdata.c
+fsdata.o: ../apps/httpd/fsdata.c
+httpd.o: ../apps/httpd/httpd.c ../uip/uip.h uipopt.h \
+ ../apps/smtp/smtp.h ../apps/httpd/httpd.h ../apps/httpd/fs.h \
+ ../apps/httpd/fsdata.h ../apps/httpd/cgi.h
 
 clean:
 	rm -f *.o *~ *core uip

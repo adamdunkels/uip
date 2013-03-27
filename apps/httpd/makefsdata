@@ -15,8 +15,12 @@ while($file = <FILES>) {
     chop($file);
     
     open(HEADER, "> /tmp/header") || die $!;
-    print(HEADER "HTTP/1.0 200 OK\r\n");
-    print(HEADER "Server: uIP/0.5 (http://dunkels.com/adam/uip/)\r\n");
+    if($file =~ /404.html/) {
+      print(HEADER "HTTP/1.0 404 File not found\r\n");
+    } else {
+      print(HEADER "HTTP/1.0 200 OK\r\n");
+    }
+    print(HEADER "Server: uIP/0.9 (http://dunkels.com/adam/uip/)\r\n");
     if($file =~ /\.html$/) {
 	print(HEADER "Content-type: text/html\r\n");
     } elsif($file =~ /\.gif$/) {

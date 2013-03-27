@@ -10,10 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,7 +28,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uip_arch.c,v 1.1 2002/01/10 06:22:56 adam Exp $
+ * $Id: uip_arch.c,v 1.2.2.1 2003/10/04 22:54:17 adam Exp $
  *
  */
 
@@ -43,93 +40,36 @@
 #define IP_PROTO_TCP    6
 
 /*-----------------------------------------------------------------------------------*/
-#if UIP_BUFSIZE > 255
-/*-----------------------------------------------------------------------------------*/
 void
-uip_add_rcv_nxt(u16_t n)
+uip_add32(u8_t *op32, u16_t op16)
 {
-  uip_conn->rcv_nxt[3] += (n & 0xff);
-  uip_conn->rcv_nxt[2] += (n >> 8);
-
-  if(uip_conn->rcv_nxt[2] < (n >> 8)) {
-    ++uip_conn->rcv_nxt[1];    
-    if(uip_conn->rcv_nxt[1] == 0) {
-      ++uip_conn->rcv_nxt[0];
+  
+  uip_acc32[3] = op32[3] + (op16 & 0xff);
+  uip_acc32[2] = op32[2] + (op16 >> 8);
+  uip_acc32[1] = op32[1];
+  uip_acc32[0] = op32[0];
+  
+  if(uip_acc32[2] < (op16 >> 8)) {
+    ++uip_acc32[1];    
+    if(uip_acc32[1] == 0) {
+      ++uip_acc32[0];
     }
   }
   
   
-  if(uip_conn->rcv_nxt[3] < (n & 0xff)) {
-    ++uip_conn->rcv_nxt[2];  
-    if(uip_conn->rcv_nxt[2] == 0) {
-      ++uip_conn->rcv_nxt[1];    
-      if(uip_conn->rcv_nxt[1] == 0) {
-	++uip_conn->rcv_nxt[0];
+  if(uip_acc32[3] < (op16 & 0xff)) {
+    ++uip_acc32[2];  
+    if(uip_acc32[2] == 0) {
+      ++uip_acc32[1];    
+      if(uip_acc32[1] == 0) {
+	++uip_acc32[0];
       }
     }
   }
 }
 /*-----------------------------------------------------------------------------------*/
-void
-uip_add_ack_nxt(u16_t n)
-{
-  uip_conn->ack_nxt[3] += (n & 0xff);
-  uip_conn->ack_nxt[2] += (n >> 8);
-
-  if(uip_conn->ack_nxt[2] < (n >> 8)) {
-    ++uip_conn->ack_nxt[1];    
-    if(uip_conn->ack_nxt[1] == 0) {
-      ++uip_conn->ack_nxt[0];
-    }
-  }
-  
-  
-  if(uip_conn->ack_nxt[3] < (n & 0xff)) {
-    ++uip_conn->ack_nxt[2];  
-    if(uip_conn->ack_nxt[2] == 0) {
-      ++uip_conn->ack_nxt[1];    
-      if(uip_conn->ack_nxt[1] == 0) {
-	++uip_conn->ack_nxt[0];
-      }
-    }
-  }
-}
-/*-----------------------------------------------------------------------------------*/
-#else /* UIP_BUFSIZE > 255 */
-/*-----------------------------------------------------------------------------------*/
-void
-uip_add_rcv_nxt(u8_t n)
-{
-  uip_conn->rcv_nxt[3] += n;
-  if(uip_conn->rcv_nxt[3] < n) {
-    ++uip_conn->rcv_nxt[2];  
-    if(uip_conn->rcv_nxt[2] == 0) {
-      ++uip_conn->rcv_nxt[1];    
-      if(uip_conn->rcv_nxt[1] == 0) {
-	++uip_conn->rcv_nxt[0];
-      }
-    }
-  }
-}
-/*-----------------------------------------------------------------------------------*/
-void
-uip_add_ack_nxt(u8_t n)
-{
-  uip_conn->ack_nxt[3] += n;
-  if(uip_conn->ack_nxt[3] < n) {
-    ++uip_conn->ack_nxt[2];   
-    if(uip_conn->ack_nxt[2] == 0) {
-      ++uip_conn->ack_nxt[1];
-      if(uip_conn->ack_nxt[1] == 0) {
-	++uip_conn->ack_nxt[0];
-      }
-    }
-  }
-}
-/*-----------------------------------------------------------------------------------*/
-#endif /* UIP_BUFSIZE > 255 */
-static u16_t
-chksum(u16_t *sdata, u16_t len)
+u16_t
+uip_chksum(u16_t *sdata, u16_t len)
 {
   u16_t acc;
   
@@ -157,7 +97,7 @@ chksum(u16_t *sdata, u16_t len)
 u16_t
 uip_ipchksum(void)
 {
-  return chksum((u16_t *)&uip_buf[UIP_LLH_LEN], 20);
+  return uip_chksum((u16_t *)&uip_buf[UIP_LLH_LEN], 20);
 }
 /*-----------------------------------------------------------------------------------*/
 u16_t
@@ -167,12 +107,12 @@ uip_tcpchksum(void)
 
   
   /* Compute the checksum of the TCP header. */
-  hsum = chksum((u16_t *)&uip_buf[20 + UIP_LLH_LEN], 20);
+  hsum = uip_chksum((u16_t *)&uip_buf[20 + UIP_LLH_LEN], 20);
 
   /* Compute the checksum of the data in the TCP packet and add it to
      the TCP header checksum. */
-  sum = chksum((u16_t *)uip_appdata,
-	       (u16_t)(((((u16_t)(BUF->len[0]) << 8) + BUF->len[1]) - 40)));
+  sum = uip_chksum((u16_t *)uip_appdata,
+		   (u16_t)(((((u16_t)(BUF->len[0]) << 8) + BUF->len[1]) - 40)));
 
   if((sum += hsum) < hsum) {
     ++sum;

@@ -1,3 +1,14 @@
+/**
+ * \addtogroup httpd
+ * @{
+ */
+
+/**
+ * \file
+ * HTTP script language header file.
+ * \author Adam Dunkels <adam@dunkels.com>
+ */
+
 /*
  * Copyright (c) 2001, Adam Dunkels.
  * All rights reserved. 
@@ -10,10 +21,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,15 +39,19 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: cgi.h,v 1.3 2002/01/10 19:18:12 adam Exp $
+ * $Id: cgi.h,v 1.3.2.4 2003/10/07 13:22:27 adam Exp $
  *
  */
 
 #ifndef __CGI_H__
 #define __CGI_H__
 
-typedef u8_t (* cgifunction)(void);
+typedef u8_t (* cgifunction)(u8_t next);
 
+/**
+ * A table containing pointers to C functions that can be called from
+ * a web server script.
+ */
 extern cgifunction cgitab[];
 
 #endif /* __CGI_H__ */

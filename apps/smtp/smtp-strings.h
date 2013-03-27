@@ -1,0 +1,9 @@
+extern char smtp_220[4];
+extern char smtp_helo[6];
+extern char smtp_mail_from[12];
+extern char smtp_rcpt_to[10];
+extern char smtp_data[5];
+extern char smtp_to[5];
+extern char smtp_from[7];
+extern char smtp_subject[10];
+extern char smtp_quit[5];

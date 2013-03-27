@@ -1,3 +1,54 @@
+/**
+ * \addtogroup exampleapps
+ * @{
+ */
+
+/**
+ * \defgroup httpd Web server
+ * @{
+ *
+ * The uIP web server is a very simplistic implementation of an HTTP
+ * server. It can serve web pages and files from a read-only ROM
+ * filesystem, and provides a very small scripting language.
+ *
+ * The script language is very simple and works as follows. Each
+ * script line starts with a command character, either "i", "t", "c",
+ * "#" or ".".  The "i" command tells the script interpreter to
+ * "include" a file from the virtual file system and output it to the
+ * web browser. The "t" command should be followed by a line of text
+ * that is to be output to the browser. The "c" command is used to
+ * call one of the C functions from the httpd-cgi.c file. A line that
+ * starts with a "#" is ignored (i.e., the "#" denotes a comment), and
+ * the "." denotes the last script line.
+ *
+ * The script that produces the file statistics page looks somewhat
+ * like this:
+ *
+ \code
+i /header.html
+t <h1>File statistics</h1><br><table width="100%">
+t <tr><td><a href="/index.html">/index.html</a></td><td>
+c a /index.html
+t </td></tr> <tr><td><a href="/cgi/files">/cgi/files</a></td><td>
+c a /cgi/files
+t </td></tr> <tr><td><a href="/cgi/tcp">/cgi/tcp</a></td><td>
+c a /cgi/tcp
+t </td></tr> <tr><td><a href="/404.html">/404.html</a></td><td>
+c a /404.html
+t </td></tr></table>
+i /footer.plain
+.
+ \endcode
+ *
+ */
+
+
+/**
+ * \file
+ * HTTP server.
+ * \author Adam Dunkels <adam@dunkels.com>
+ */
+
 /*
  * Copyright (c) 2001, Adam Dunkels.
  * All rights reserved. 
@@ -10,10 +61,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,7 +79,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: httpd.c,v 1.27 2002/01/15 17:22:08 adam Exp $
+ * $Id: httpd.c,v 1.28.2.6 2003/10/07 13:22:27 adam Exp $
  *
  */
 
@@ -63,6 +111,7 @@
 struct httpd_state *hs;
 
 extern const struct fsdata_file file_index_html;
+extern const struct fsdata_file file_404_html;
 
 static void next_scriptline(void);
 static void next_scriptstate(void);
@@ -84,24 +133,31 @@ static void next_scriptstate(void);
 
 
 /*-----------------------------------------------------------------------------------*/
+/**
+ * Initialize the web server.
+ *
+ * Starts to listen for incoming connection requests on TCP port 80.
+ */
+/*-----------------------------------------------------------------------------------*/
 void
 httpd_init(void)
 {
   fs_init();
   
   /* Listen to port 80. */
-  uip_listen(80);
+  uip_listen(HTONS(80));
 }
 /*-----------------------------------------------------------------------------------*/
 void
-httpd(void)
+httpd_appcall(void)
 {
   struct fs_file fsfile;  
+
   u8_t i;
-  
+
   switch(uip_conn->lport) {
     /* This is the web server: */
-  case htons(80):
+  case HTONS(80):
     /* Pick out the application state from the uip_conn structure. */
     hs = (struct httpd_state *)(uip_conn->appstate);
 
@@ -121,9 +177,6 @@ httpd(void)
          connection yet. */
       hs->state = HTTP_NOGET;
       hs->count = 0;
-      /* Don't send any data in return; we wait for the HTTP request
-	 instead. */
-      uip_send(uip_appdata, 0);
       return;
 
     } else if(uip_poll()) {
@@ -161,10 +214,17 @@ httpd(void)
       PRINT("request for file ");
       PRINTLN(&uip_appdata[4]);
       
-      if(!fs_open((const char *)&uip_appdata[4], &fsfile)) {
-	PRINTLN("couldn't open file");
-	fs_open(file_index_html.name, &fsfile);
+      /* Check for a request for "/". */
+      if(uip_appdata[4] == ISO_slash &&
+	 uip_appdata[5] == 0) {
+	fs_open(file_index_html.name, &fsfile);    
+      } else {
+	if(!fs_open((const char *)&uip_appdata[4], &fsfile)) {
+	  PRINTLN("couldn't open file");
+	  fs_open(file_404_html.name, &fsfile);
+	}
       } 
+
 
       if(uip_appdata[4] == ISO_slash &&
 	 uip_appdata[5] == ISO_c &&
@@ -196,10 +256,9 @@ httpd(void)
 	 into the file and send back more data. If we are out of data to
 	 send, we close the connection. */
       if(uip_acked()) {
-	
-	if(hs->count >= uip_mss()) {
-	  hs->count -= uip_mss();
-	  hs->dataptr += uip_mss();
+	if(hs->count >= uip_conn->len) {
+	  hs->count -= uip_conn->len;
+	  hs->dataptr += uip_conn->len;
 	} else {
 	  hs->count = 0;
 	}
@@ -213,11 +272,9 @@ httpd(void)
 	  }
 	}
       }         
-    }
-    
-    if(hs->state == HTTP_FUNC) {
+    } else {
       /* Call the CGI function. */
-      if(cgitab[hs->script[2] - ISO_a]()) {
+      if(cgitab[hs->script[2] - ISO_a](uip_acked())) {
 	/* If the function returns non-zero, we jump to the next line
            in the script. */
 	next_scriptline();
@@ -228,8 +285,7 @@ httpd(void)
     if(hs->state != HTTP_FUNC && !uip_poll()) {
       /* Send a piece of data, but not more than the MSS of the
 	 connection. */
-      uip_send(hs->dataptr,
-	       hs->count > uip_mss()? uip_mss(): hs->count);
+      uip_send(hs->dataptr, hs->count);
     }
 
     /* Finally, return to uIP. Our outgoing packet will soon be on its
@@ -284,7 +340,7 @@ next_scriptstate(void)
     hs->state = HTTP_FUNC;
     hs->dataptr = NULL;
     hs->count = 0;
-    uip_reset_acked();
+    cgitab[hs->script[2] - ISO_a](0);
     break;
   case ISO_i:   
     /* Include a file. */
@@ -311,3 +367,5 @@ next_scriptstate(void)
   }
 }
 /*-----------------------------------------------------------------------------------*/
+/** @} */
+/** @} */

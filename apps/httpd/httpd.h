@@ -1,3 +1,14 @@
+/**
+ * \addtogroup httpd
+ * @{
+ */
+
+/**
+ * \file
+ * HTTP server header file.
+ * \author Adam Dunkels <adam@dunkels.com>
+ */
+
 /*
  * Copyright (c) 2001, Adam Dunkels.
  * All rights reserved. 
@@ -10,10 +21,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,7 +39,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: httpd.h,v 1.3 2002/01/15 17:22:08 adam Exp $
+ * $Id: httpd.h,v 1.4.2.3 2003/10/06 22:56:44 adam Exp $
  *
  */
 
@@ -39,12 +47,14 @@
 #define __HTTPD_H__
 
 void httpd_init(void);
-void httpd(void);
+void httpd_appcall(void);
 
 /* UIP_APPCALL: the name of the application function. This function
    must return void and take no arguments (i.e., C type "void
    appfunc(void)"). */
-#define UIP_APPCALL     httpd
+#ifndef UIP_APPCALL
+#define UIP_APPCALL     httpd_appcall
+#endif
 
 struct httpd_state {
   u8_t state; 
@@ -56,7 +66,9 @@ struct httpd_state {
 
 /* UIP_APPSTATE_SIZE: The size of the application-specific state
    stored in the uip_conn structure. */
+#ifndef UIP_APPSTATE_SIZE
 #define UIP_APPSTATE_SIZE (sizeof(struct httpd_state))
+#endif
 
 #define FS_STATISTICS 1
 

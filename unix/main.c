@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, Adam Dunkels.
+ * Copyright (c) 2001-2003, Adam Dunkels.
  * All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -10,10 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,7 +28,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: main.c,v 1.2 2002/01/13 21:12:41 adam Exp $
+ * $Id: main.c,v 1.10.2.1 2003/10/04 22:54:17 adam Exp $
  *
  */
 
@@ -40,18 +37,29 @@
 #include "uip_arp.h"
 #include "tapdev.h"
 #include "httpd.h"
+#include "telnet.h"
 
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
+
+#ifndef NULL
+#define NULL (void *)0
+#endif /* NULL */
+
 /*-----------------------------------------------------------------------------------*/
 int
 main(void)
 {
   u8_t i, arptimer;
-  
-  tapdev_init();
-  uip_init();
-  httpd_init();
 
+  /* Initialize the device driver. */ 
+  tapdev_init();
+
+  /* Initialize the uIP TCP/IP stack. */
+  uip_init();
+
+  /* Initialize the HTTP server. */
+  httpd_init();
+  
   arptimer = 0;
   
   while(1) {
@@ -64,15 +72,28 @@ main(void)
     if(uip_len == 0) {
       for(i = 0; i < UIP_CONNS; i++) {
 	uip_periodic(i);
-      /* If the above function invocation resulted in data that
-	 should be sent out on the network, the global variable
-	 uip_len is set to a value > 0. */
+	/* If the above function invocation resulted in data that
+	   should be sent out on the network, the global variable
+	   uip_len is set to a value > 0. */
 	if(uip_len > 0) {
 	  uip_arp_out();
 	  tapdev_send();
 	}
       }
 
+#if UIP_UDP
+      for(i = 0; i < UIP_UDP_CONNS; i++) {
+	uip_udp_periodic(i);
+	/* If the above function invocation resulted in data that
+	   should be sent out on the network, the global variable
+	   uip_len is set to a value > 0. */
+	if(uip_len > 0) {
+	  uip_arp_out();
+	  tapdev_send();
+	}
+      }
+#endif /* UIP_UDP */
+      
       /* Call the ARP timer function every 10 seconds. */
       if(++arptimer == 20) {	
 	uip_arp_timer();
@@ -82,7 +103,6 @@ main(void)
     } else {
       if(BUF->type == htons(UIP_ETHTYPE_IP)) {
 	uip_arp_ipin();
-	uip_len -= sizeof(struct uip_eth_hdr);
 	uip_input();
 	/* If the above function invocation resulted in data that
 	   should be sent out on the network, the global variable
@@ -106,4 +126,9 @@ main(void)
   return 0;
 }
 /*-----------------------------------------------------------------------------------*/
-
+void
+uip_log(char *m)
+{
+  printf("uIP log message: %s\n", m);
+}
+/*-----------------------------------------------------------------------------------*/

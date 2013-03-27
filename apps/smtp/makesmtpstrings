@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+open(OUTPUTC, "> smtp-strings.c");
+open(OUTPUTH, "> smtp-strings.h");
+
+open(FILE, "smtp-strings");
+
+while(<FILE>) {
+  if(/(.+) "(.+)"/) {
+    $var = $1;
+    $data = $2;
+    
+    printf(OUTPUTC "char $var\[%d] = \n", length($data) + 1);
+    printf(OUTPUTC "/* $data */\n");
+    printf(OUTPUTC "{");
+    for($j = 0; $j < length($data); $j++) {
+      printf(OUTPUTC "%#02x, ", unpack("C", substr($data, $j, 1)));
+    }
+    printf(OUTPUTC "};\n");
+
+    printf(OUTPUTH "extern char $var\[%d];\n", length($data) + 1);
+    
+  }
+}
+exit 0;
+
+printf(OUTPUT "%#02x, ", unpack("C", $data));

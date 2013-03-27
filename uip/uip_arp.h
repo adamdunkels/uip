@@ -1,5 +1,22 @@
+/**
+ * \addtogroup uip
+ * @{
+ */
+
+/**
+ * \addtogroup uiparp 
+ * @{
+ */
+ 
+/**
+ * \file
+ * Macros and definitions for the ARP module.
+ * \author Adam Dunkels <adam@dunkels.com>
+ */
+  
+
 /*
- * Copyright (c) 2001-2002, Adam Dunkels.
+ * Copyright (c) 2001-2003, Adam Dunkels.
  * All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without 
@@ -10,10 +27,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,7 +45,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: uip_arp.h,v 1.2 2002/01/11 18:54:35 adam Exp $
+ * $Id: uip_arp.h,v 1.3.2.2 2003/10/06 15:10:22 adam Exp $
  *
  */
 
@@ -40,10 +54,19 @@
 
 #include "uip.h"
 
+
+/**
+ * Representation of a 48-bit Ethernet address.
+ */
 struct uip_eth_addr {
   u8_t addr[6];
 };
-  
+
+extern struct uip_eth_addr uip_ethaddr;
+
+/**
+ * The Ethernet header. 
+ */
 struct uip_eth_hdr {
   struct uip_eth_addr dest;
   struct uip_eth_addr src;
@@ -52,6 +75,8 @@ struct uip_eth_hdr {
 
 #define UIP_ETHTYPE_ARP 0x0806
 #define UIP_ETHTYPE_IP  0x0800
+#define UIP_ETHTYPE_IP6 0x86dd 
+
 
 /* The uip_arp_init() function must be called before any of the other
    ARP functions. */
@@ -88,4 +113,89 @@ void uip_arp_out(void);
    is responsible for flushing old entries in the ARP table. */
 void uip_arp_timer(void);
 
+/** @} */
+
+/**
+ * \addtogroup uipconffunc
+ * @{
+ */
+
+/**
+ * Set the default router's IP address.
+ *
+ * \param addr A pointer to a 4-byte array containing the IP address
+ * of the default router.
+ *
+ * \hideinitializer
+ */
+#define uip_setdraddr(addr) do { uip_arp_draddr[0] = addr[0]; \
+                                 uip_arp_draddr[1] = addr[1]; } while(0)
+
+/**
+ * Set the netmask.
+ *
+ * \param addr A pointer to a 4-byte array containing the IP address
+ * of the netmask.
+ *
+ * \hideinitializer
+ */
+#define uip_setnetmask(addr) do { uip_arp_netmask[0] = addr[0]; \
+                                  uip_arp_netmask[1] = addr[1]; } while(0)
+
+
+/**
+ * Get the default router's IP address.
+ *
+ * \param addr A pointer to a 4-byte array that will be filled in with
+ * the IP address of the default router.
+ *
+ * \hideinitializer
+ */
+#define uip_getdraddr(addr) do { addr[0] = uip_arp_draddr[0]; \
+                                 addr[1] = uip_arp_draddr[1]; } while(0)
+
+/**
+ * Get the netmask.
+ *
+ * \param addr A pointer to a 4-byte array that will be filled in with
+ * the value of the netmask.
+ *
+ * \hideinitializer
+ */
+#define uip_getnetmask(addr) do { addr[0] = uip_arp_netmask[0]; \
+                                  addr[1] = uip_arp_netmask[1]; } while(0)
+
+
+/**
+ * Specifiy the Ethernet MAC address.
+ *
+ * The ARP code needs to know the MAC address of the Ethernet card in
+ * order to be able to respond to ARP queries and to generate working
+ * Ethernet headers.
+ *
+ * \note This macro only specifies the Ethernet MAC address to the ARP
+ * code. It cannot be used to change the MAC address of the Ethernet
+ * card.
+ *
+ * \param eaddr A pointer to a struct uip_eth_addr containing the
+ * Ethernet MAC address of the Ethernet card.
+ *
+ * \hideinitializer
+ */
+#define uip_setethaddr(eaddr) do {uip_ethaddr.addr[0] = eaddr.addr[0]; \
+                              uip_ethaddr.addr[1] = eaddr.addr[1];\
+                              uip_ethaddr.addr[2] = eaddr.addr[2];\
+                              uip_ethaddr.addr[3] = eaddr.addr[3];\
+                              uip_ethaddr.addr[4] = eaddr.addr[4];\
+                              uip_ethaddr.addr[5] = eaddr.addr[5];} while(0)
+
+/** @} */
+
+/**
+ * \internal Internal variables that are set using the macros
+ * uip_setdraddr and uip_setnetmask.
+ */
+extern u16_t uip_arp_draddr[2], uip_arp_netmask[2];
 #endif /* __UIP_ARP_H__ */
+
+

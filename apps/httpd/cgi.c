@@ -1,3 +1,22 @@
+/**
+ * \addtogroup httpd
+ * @{
+ */
+
+/**
+ * \file
+ * HTTP server script language C functions file.
+ * \author Adam Dunkels <adam@dunkels.com>
+ *
+ * This file contains functions that are called by the web server
+ * scripts. The functions takes one argument, and the return value is
+ * interpreted as follows. A zero means that the function did not
+ * complete and should be invoked for the next packet as well. A
+ * non-zero value indicates that the function has completed and that
+ * the web server should move along to the next script line.
+ *
+ */
+
 /*
  * Copyright (c) 2001, Adam Dunkels.
  * All rights reserved. 
@@ -10,10 +29,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright 
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by Adam Dunkels.
- * 4. The name of the author may not be used to endorse or promote
+ * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.  
  *
@@ -31,17 +47,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: cgi.c,v 1.21 2002/01/13 21:12:40 adam Exp $
- *
- */
-
-/*
- * This file includes functions that are called by the web server
- * scripts. The functions takes no argument, and the return value is
- * interpreted as follows. A zero means that the function did not
- * complete and should be invoked for the next packet as well. A
- * non-zero value indicates that the function has completed and that
- * the web server should move along to the next script line.
+ * $Id: cgi.c,v 1.23.2.4 2003/10/07 13:22:27 adam Exp $
  *
  */
 
@@ -53,9 +59,9 @@
 #include <stdio.h>
 #include <string.h>
 
-static u8_t print_stats(void);
-static u8_t file_stats(void);
-static u8_t tcp_stats(void);
+static u8_t print_stats(u8_t next);
+static u8_t file_stats(u8_t next);
+static u8_t tcp_stats(u8_t next);
 
 cgifunction cgitab[] = {
   print_stats,   /* CGI function "a" */
@@ -110,14 +116,14 @@ static const char *states[] = {
  * packet.
  */
 static u8_t
-print_stats(void)
+print_stats(u8_t next)
 {
 #if UIP_STATISTICS
   u16_t i, j;
   u8_t *buf;
   u16_t *databytes;
   
-  if(uip_acked()) {
+  if(next) {
     /* If our last data has been acknowledged, we move on the next
        chunk of statistics. */
     hs->count = hs->count + 4;
@@ -151,12 +157,12 @@ print_stats(void)
 }
 /*-----------------------------------------------------------------------------------*/
 static u8_t
-file_stats(void)
+file_stats(u8_t next)
 {
   /* We use sprintf() to print the number of file accesses to a
      particular file (given as an argument to the function in the
      script). We then use uip_send() to actually send the data. */
-  if(uip_acked()) {
+  if(next) {
     return 1;
   }
   uip_send(uip_appdata, sprintf((char *)uip_appdata, "%5u", fs_count(&hs->script[4])));  
@@ -164,11 +170,11 @@ file_stats(void)
 }
 /*-----------------------------------------------------------------------------------*/
 static u8_t
-tcp_stats(void)
+tcp_stats(u8_t next)
 {
   struct uip_conn *conn;  
 
-  if(uip_acked()) {
+  if(next) {
     /* If the previously sent data has been acknowledged, we move
        forward one connection. */
     if(++hs->count == UIP_CONNS) {
@@ -181,24 +187,24 @@ tcp_stats(void)
   conn = &uip_conns[hs->count];
   if((conn->tcpstateflags & TS_MASK) == CLOSED) {
     uip_send(uip_appdata, sprintf((char *)uip_appdata,
-				  "<tr align=\"center\"><td>-</td><td>-</td><td>%d</td><td>%d</td><td>%c %c</td></tr>\r\n",
+				  "<tr align=\"center\"><td>-</td><td>-</td><td>%u</td><td>%u</td><td>%c %c</td></tr>\r\n",
 				  conn->nrtx,
 				  conn->timer,
-				  (conn->tcpstateflags & UIP_OUTSTANDING)? '*':' ',
-    				  (conn->tcpstateflags & UIP_STOPPED)? '!':' '));
+				  (uip_outstanding(conn))? '*':' ',
+    				  (uip_stopped(conn))? '!':' '));
   } else {
     uip_send(uip_appdata, sprintf((char *)uip_appdata,
-				  "<tr align=\"center\"><td>%d.%d.%d.%d:%d</td><td>%s</td><td>%d</td><td>%d</td><td>%c %c</td></tr>\r\n",
-				  ntohs(conn->ripaddr[0]) >> 8,
-				  ntohs(conn->ripaddr[0]) & 0xff,
-				  ntohs(conn->ripaddr[1]) >> 8,
-				  ntohs(conn->ripaddr[1]) & 0xff,
-				  ntohs(conn->rport),
+				  "<tr align=\"center\"><td>%u.%u.%u.%u:%u</td><td>%s</td><td>%u</td><td>%u</td><td>%c %c</td></tr>\r\n",
+				  htons(conn->ripaddr[0]) >> 8,
+				  htons(conn->ripaddr[0]) & 0xff,
+				  htons(conn->ripaddr[1]) >> 8,
+				  htons(conn->ripaddr[1]) & 0xff,
+				  htons(conn->rport),
 				  states[conn->tcpstateflags & TS_MASK],
 				  conn->nrtx,
 				  conn->timer,
-				  (conn->tcpstateflags & UIP_OUTSTANDING)? '*':' ',
-    				  (conn->tcpstateflags & UIP_STOPPED)? '!':' '));
+				  (uip_outstanding(conn))? '*':' ',
+    				  (uip_stopped(conn))? '!':' '));
   }
   return 0;
 }
